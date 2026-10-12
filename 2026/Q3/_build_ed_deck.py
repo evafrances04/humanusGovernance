@@ -12,7 +12,7 @@ small flow helper; `[Eva to confirm ...]` markers are set in Touch pink so the
 ED can find every open item at sign-off.
 
 Sources: MA's strand-mapped pre-draft (12 Oct 2026, green-lit by Eva), Eva's
-retreat summary and revisions (CAP-518 comments, 12 Oct 2026), Stacy McGill's Q3 2026 Board
+retreat summary, revisions and further activities (CAP-518 comments, 12 Oct 2026), Stacy McGill's Q3 2026 Board
 Finance Report (branch agent/stacy-mcgill/01a12f27).
 """
 
@@ -208,7 +208,7 @@ def build():
     s = clone_slide(prs, goals)
     set_text(shape(s, "TextBox 14"),
              "The September retreat broadened our framing from serious international crimes to "
-             "human rights violations (slide 10).")
+             "human rights violations (slide 11).")
     footers.append((shape(s, "TextBox 15"), shape(s, "TextBox 16")))
 
     # 3 — where the work has sat
@@ -267,7 +267,7 @@ def build():
              "being assessed. Case-law report on Rohingya deportation in preparation.", gap=110000)
     f.eyebrow("Why this matters for the board")
     f.body("The retreat agreed to continue the lawyer-network and coordination approach and to "
-           "take stock of the Rohingya work after six months, around March 2027 (slide 10). The "
+           "take stock of the Rohingya work after six months, around March 2027 (slide 11). The "
            "ED will report the outcome to the board.")
     f.check("India")
     footers.append((shape(s, "TextBox 18"), shape(s, "TextBox 19")))
@@ -344,7 +344,25 @@ def build():
     f.check("Public engagement")
     footers.append((shape(s, "TextBox 18"), shape(s, "TextBox 19")))
 
-    # 9 — Research
+    # 9 — Further activities
+    s = frame(prs, india, "Further activities",
+              "Advisory work outside our funded programmes")
+    f = Flow(s, protos)
+    f.eyebrow("Since 29 June")
+    f.bullet("Australian war crimes, victim participation — advice to two sets of clients in "
+             "Australia on victim participation in prosecutions of alleged war crimes committed "
+             "in Afghanistan.")
+    f.bullet("Caste-based discrimination — advice on a complaint to the Australian Human Rights "
+             "Commission against a New South Wales local council, concerning discrimination against "
+             "Dalit, Bahujan and Adivasi communities. Referred via Salil Shetty; instructed September 2026.")
+    f.eyebrow("Why this matters for the board")
+    f.body("Both matters fall within the broadened human rights violations framing agreed at the "
+           "retreat (slide 11). They are confidential client matters, so details are held by the ED "
+           "and are not set out in this paper.")
+    f.check("Further activities")
+    footers.append((shape(s, "TextBox 18"), shape(s, "TextBox 19")))
+
+    # 10 — Research
     s = frame(prs, india, "Research — Rohingya analysis",
               "Sawyadullah  ·  supporting dialogue activities and Rohingya leadership")
     f = Flow(s, protos)
@@ -358,7 +376,7 @@ def build():
     f.check("Research")
     footers.append((shape(s, "TextBox 18"), shape(s, "TextBox 19")))
 
-    # 10 — Retreat
+    # 11 — Retreat
     s = frame(prs, india, "Strategy retreat — what we decided",
               "Team retreat, September 2026  ·  strategy, impact and organisational focus")
     f = Flow(s, protos, bullet_pt=12)
@@ -379,7 +397,7 @@ def build():
     f.check("Retreat")
     footers.append((shape(s, "TextBox 18"), shape(s, "TextBox 19")))
 
-    # 11 — Strategic outlook and watch-items
+    # 12 — Strategic outlook and watch-items
     s = clone_slide(prs, outlook)
     set_text(shape(s, "TextBox 4"), "Things to keep in view between now and the February 2027 meeting.")
     watch = [
@@ -405,7 +423,7 @@ def build():
     remove(s, "Rectangle 20", "TextBox 21", "TextBox 22")  # Q2 had six items; five here
     footers.append((shape(s, "TextBox 23"), shape(s, "TextBox 24")))
 
-    # 12 — close
+    # 13 — close
     s = clone_slide(prs, close)
     set_text(shape(s, "TextBox 6"),
              "Q3 2026 Board Meeting  ·  Operations & Impact Update  ·  Sponsor: Eva Buzo (ED)  ·  DRAFT")
