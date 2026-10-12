@@ -12,7 +12,7 @@ small flow helper; `[Eva to confirm ...]` markers are set in Touch pink so the
 ED can find every open item at sign-off.
 
 Sources: MA's strand-mapped pre-draft (12 Oct 2026, green-lit by Eva), Eva's
-retreat summary (CAP-518 comment, 12 Oct 2026), Stacy McGill's Q3 2026 Board
+retreat summary and revisions (CAP-518 comments, 12 Oct 2026), Stacy McGill's Q3 2026 Board
 Finance Report (branch agent/stacy-mcgill/01a12f27).
 """
 
@@ -201,14 +201,14 @@ def build():
     set_text(shape(s, "TextBox 4"), "update since 29 June  ·  Q3 2026 Board Meeting")
     set_text(shape(s, "TextBox 5"), "29 October 2026")
     set_text(shape(s, "TextBox 8"),
-             "Sponsor: Eva Buzo, Executive Director  ·  Agenda item [Eva to confirm]  ·  "
+             "Sponsor: Eva Buzo, Executive Director  ·  Agenda item TBC  ·  "
              "15 minutes  ·  Discussion  ·  DRAFT for ED sign-off")
 
     # 2 — three goals
     s = clone_slide(prs, goals)
     set_text(shape(s, "TextBox 14"),
-             "The September retreat proposed broadening our framing from serious international "
-             "crimes to human rights violations (slide 10). [Eva to confirm: Note or Endorse on 29 Oct agenda]")
+             "The September retreat broadened our framing from serious international crimes to "
+             "human rights violations (slide 10).")
     footers.append((shape(s, "TextBox 15"), shape(s, "TextBox 16")))
 
     # 3 — where the work has sat
@@ -225,13 +225,15 @@ def build():
          "Phase I delivery continuing; inputs to Stimson-led interim report (Jun–Oct); "
          "Jun–Oct financial claim in preparation."),
         ("Towards a More Peaceful Arakan", "Swiss FDFA via Stimson Center",
-         "Rohingya dialogue continuing; RCC roundtable on conditions for return at UNGA (25 Sep)."),
+         "Rohingya dialogue continuing; FDFA head grant and joint workplan requested from Stimson."),
         ("Accountability for business and human rights", "Core funding",
-         "Meta response to our case; Amnesty × hūmānus UNGA side event; Adani research dossier."),
+         "Meta response to our case; Amnesty × hūmānus UNGA side event (25 Sep); Adani "
+         "coordination and investigation continuing."),
         ("Public engagement", "Core funding",
-         "Against the Tide swim (Small Islands Coalition, Seychelles, UNGA); Berkeley keynote (28 Sep)."),
+         "Against the Tide swim (Small Islands Coalition, Seychelles, UNGA); Berkeley keynote "
+         "(28 Sep); OSF partner retreat, Mexico."),
         ("Research — Rohingya analysis", "[Eva to confirm]",
-         "Sawyeddollah's analysis reports on Rohingya; website in development."),
+         "Sawyadullah's 10 analysis reports; website launching November 2026."),
     ]
     # Q2 mixed Fagun Bold and Inter bold across rows; Inter bold falls back badly
     # where Inter isn't installed, so set row and header labels in Fagun Bold.
@@ -243,8 +245,7 @@ def build():
         set_text(shape(s, f"TextBox {11 + 4 * r}"), funder)
         set_text(shape(s, f"TextBox {12 + 4 * r}"), status)
     set_text(shape(s, "TextBox 33"),
-             "Women's Dialogue (SDC) closed 30 April 2026; no activity this period. "
-             "[Eva to confirm] Finance: see Stacy McGill's Q3 Board Finance Report and Forecast Report.")
+             "Women's Dialogue (SDC) grant ended 30 April 2026, as reported at Q2. Finance: see Stacy McGill's Q3 Board Finance Report and Forecast Report.")
     footers.append((shape(s, "TextBox 34"), shape(s, "TextBox 35")))
 
     # 4 — Rohingya in India
@@ -265,8 +266,9 @@ def build():
     f.bullet("Lawyer network — Jammu & Kashmir leads in place; Rajasthan, Tripura and Hyderabad "
              "being assessed. Case-law report on Rohingya deportation in preparation.", gap=110000)
     f.eyebrow("Why this matters for the board")
-    f.body("The retreat agreed to continue the lawyer-network approach and reassess the Rohingya "
-           "project after six months (slide 10). [Eva to confirm: report the review in writing or verbally]")
+    f.body("The retreat agreed to continue the lawyer-network and coordination approach and to "
+           "take stock of the Rohingya work after six months, around March 2027 (slide 10). The "
+           "ED will report the outcome to the board.")
     f.check("India")
     footers.append((shape(s, "TextBox 18"), shape(s, "TextBox 19")))
 
@@ -297,12 +299,9 @@ def build():
            "combining bilateral engagement, capacity building, and facilitated dialogue.")
     f.eyebrow("Since 29 June")
     f.bullet("Rohingya dialogue work continuing with Rohingya leadership.")
-    f.bullet("UNGA week — RCC High-Level Roundtable, The Conditions for Return: A Rohingya-Led "
-             "Dialogue (25 September).")
     f.bullet("Request made to Stimson for the FDFA head grant and the approved joint workplan.")
-    f.bullet("Related peace-network engagement — PHRD Myanmar partner discussion (16 July); "
-             "Pre-Gathering online sessions, Finding Each Other on Shifting Ground (13 and 16 July); "
-             "Swiss Peace Partners Network, Geneva (6 August). [Eva to confirm placement]")
+    f.bullet("Partner engagement — PHRD Myanmar partner discussion (16 July); Swiss Peace "
+             "Partners Network, Geneva (6 August).")
     f.check("Arakan")
     footers.append((shape(s, "TextBox 18"), shape(s, "TextBox 19")))
 
@@ -313,101 +312,74 @@ def build():
     set_text(shape(s, "TextBox 8"), "Meta / Facebook")
     set_text(shape(s, "TextBox 9"),
              "Meta has responded to our case, including a request for particulars. "
-             "[Eva to confirm: source to be supplied] Amnesty × hūmānus and Meta Inc. side events "
-             "at UNGA (25 Sep); documentary narrative and video series in production.")
-    set_text(shape(s, "TextBox 10"), "Adani / UniSuper / APRA")
+             "[Eva to confirm: source to be supplied] Amnesty × hūmānus side event at UNGA "
+             "(25 Sep); documentary narrative and video series in production.")
+    set_text(shape(s, "TextBox 10"), "Adani")
     set_text(shape(s, "TextBox 11"),
-             "Team research dossier progressing: UniSuper holdings disclosure, super-fund exposure "
-             "and GQG mandates, Cbus deep dive, OFAC civil probe, Australian fiduciary-duty case "
-             "law, thermal-coal revenue share, Adani Defence.")
+             "Coordination and investigation work continuing, including research on Australian "
+             "super-fund exposure, fiduciary-duty case law, the OFAC civil probe and Adani Defence.")
     set_text(shape(s, "TextBox 12"), "Other accountability work")
     set_text(shape(s, "TextBox 13"),
              "US and UK greenwashing opinions (Reuben brothers / Escénica) in progress. "
              "CERD / ICJ brief concerning Australia in preparation.")
     set_text(shape(s, "TextBox 15"),
-             "At Q2 we proposed a dedicated Adani / UniSuper paper for this meeting. "
-             "[Eva to confirm: delivered, deferred (with reason) or dropped]")
+             "At Q2 we proposed a dedicated Adani paper for this meeting. Coordination and "
+             "investigation work is continuing; the board is updated through this report.")
     footers.append((shape(s, "TextBox 16"), shape(s, "TextBox 17")))
 
     # 8 — Public engagement
-    s = frame(prs, india, "Public engagement", "Core funded  ·  Against the Tide, speaking and advocacy")
+    s = frame(prs, india, "Public engagement",
+              "Core funded  ·  Against the Tide, speaking and donor relations")
     f = Flow(s, protos)
     f.eyebrow("Against the Tide")
     f.bullet("Eva Buzo Swim × Small Islands Coalition (28 August); Islands Swim: Seychelles "
              "(15 September); small-islands press, social and documentary session at UNGA (25 September).")
-    f.eyebrow("Speaking and advocacy")
+    f.eyebrow("Speaking")
     f.bullet("Berkeley (28 September) — keynote, Human Rights for Victims of Conflict in a "
              "Fragmenting World; session with Berkeley IIS clinic students on conflict monitoring.")
-    f.bullet("UNGA week (21–25 September) — Afrobarometer–OSF side event Beyond Borders (24 Sep), "
-             "OSF reception and network partners dinner, alongside the Amnesty, Meta and RCC events "
-             "on slides 6 and 7.")
-    f.bullet("9th anniversary of the Rohingya genocide (24 August) — communications moment.")
-    f.bullet("Media bank (B-roll and photography) being built for future communications.")
+    f.eyebrow("Donor relations")
+    f.bullet("OSF partner retreat, Mexico — Finding Each Other on Shifting Ground, bringing together "
+             "around 100 OSF partners; good connections made. Preceded by online pre-gathering "
+             "sessions in July.")
     f.check("Public engagement")
     footers.append((shape(s, "TextBox 18"), shape(s, "TextBox 19")))
 
     # 9 — Research
     s = frame(prs, india, "Research — Rohingya analysis",
-              "M. Sawyeddollah [Eva to confirm spelling]  ·  funding line [Eva to confirm]")
+              "Sawyadullah  ·  supporting dialogue activities and Rohingya leadership")
     f = Flow(s, protos)
     f.eyebrow("What the strand is")
-    f.body("Analysis reports on the Rohingya situation by M. Sawyeddollah, and a website he is "
-           "building to host the work. [Eva to confirm framing]")
+    f.body("Ten analysis reports by Sawyadullah on Rohingya relationships with the United States, "
+           "China, Bangladesh, India and Pakistan — to aid our dialogue activities and support "
+           "Rohingya leadership.")
     f.eyebrow("Since 29 June")
-    f.bullet("Analysis papers discussed with him in New York during UNGA week (23 September).")
-    f.bullet("Website in development. [Eva to confirm launch timing]")
-    f.bullet("Scope and audience of the reports. [Eva to confirm]")
+    f.bullet("Website to host the work in development, launching November 2026.")
+    f.bullet("A workshop on the content will be run in the Rohingya language.")
     f.check("Research")
     footers.append((shape(s, "TextBox 18"), shape(s, "TextBox 19")))
 
-    # 10 — Retreat: strategy
+    # 10 — Retreat
     s = frame(prs, india, "Strategy retreat — what we decided",
-              "Team retreat, September 2026  ·  Day 1: strategy, impact and organisational focus")
+              "Team retreat, September 2026  ·  strategy, impact and organisational focus")
     f = Flow(s, protos, bullet_pt=12)
     f.eyebrow("Strategy and impact")
     f.bullet("Plan from what clients need — an outcomes ladder linking litigation, mediation and "
              "community engagement to meaningful results.", gap=110000)
     f.bullet("Broaden the framing from serious international crimes to human rights violations; "
-             "stay people-focused and prioritise systemic change. "
-             "[Eva to confirm: Note or Endorse on 29 Oct agenda]", gap=110000)
+             "stay people-focused and prioritise systemic change.", gap=110000)
     f.bullet("Corporate accountability — legal action, regulatory complaints and advocacy — "
              "adopted as a core model, including Adani and Facebook.", gap=110000)
-    f.bullet("Rohingya — continue the lawyer-network and coordination approach; reassess after "
-             "six months. [Eva to confirm: written or verbal]", gap=110000)
-    f.eyebrow("Organisational choices")
-    f.bullet("Be realistic about capacity; close or refocus dormant or ineffective projects "
-             "without a credible path to impact. [Eva to confirm: name projects or keep principled]",
-             gap=110000)
+    f.bullet("Rohingya — continue the lawyer-network and coordination approach, and take stock "
+             "of progress after six months.", gap=110000)
+    f.eyebrow("Priorities")
     f.bullet("Keep excellence, rigour and clear accountability central; new geographies only "
              "where needs-driven.", gap=110000)
-    f.bullet("Tell the organisation's story well, show impact to clients and funders; consider "
-             "dedicated fundraising capacity. [Eva to confirm: decided or exploratory]", gap=110000)
-    f.check("Retreat strategy")
+    f.bullet("Tell the organisation's story well and show impact to clients and funders; "
+             "consider dedicated fundraising capacity.", gap=110000)
+    f.check("Retreat")
     footers.append((shape(s, "TextBox 18"), shape(s, "TextBox 19")))
 
-    # 11 — Retreat: ways of working
-    s = frame(prs, india, "Strategy retreat — how we work",
-              "Team retreat, September 2026  ·  Day 2: culture, collaboration and ways of working")
-    f = Flow(s, protos, bullet_pt=12)
-    f.eyebrow("Ways of working")
-    f.bullet("Channels — Motion for tasks and coordination, Signal for quick contact, email for "
-             "external and out-of-hours.", gap=110000)
-    f.bullet("Rhythm — full-team meetings fortnightly, project meetings on alternate weeks, "
-             "15-minute calls for quick clarification.", gap=110000)
-    f.bullet("Supportive accountability — flag delays and dependencies early; clear owners, "
-             "timelines and expectations; setbacks treated as learning.", gap=110000)
-    f.bullet("Audiences — \"humanizing justice\" for clients seeking remedies and funders seeking "
-             "measurable impact; policymakers, lawyers and media as multipliers.", gap=110000)
-    f.bullet("People — regionally grounded recruitment, internships and fellowships; external "
-             "mentors and internal peer support.", gap=110000)
-    f.eyebrow("Follow-up themes")
-    f.body("Connect activities and resource requests to client outcomes; reassess work without a "
-           "realistic route to impact, including the Rohingya project after the review period; "
-           "strengthen public storytelling; keep refining strategy and practice as capacity evolves.")
-    f.check("Retreat ways of working")
-    footers.append((shape(s, "TextBox 18"), shape(s, "TextBox 19")))
-
-    # 12 — Strategic outlook and watch-items
+    # 11 — Strategic outlook and watch-items
     s = clone_slide(prs, outlook)
     set_text(shape(s, "TextBox 4"), "Things to keep in view between now and the February 2027 meeting.")
     watch = [
@@ -415,16 +387,14 @@ def build():
          "Cash USD 33,679 at 30 September; no contracted receipts until the FCDO Phase II claim "
          "(indicatively November) and OSF Year 3 (January 2027). Per Stacy McGill's Q3 Board Finance Report."),
         ("Strategic framing",
-         "The retreat proposes broadening the board-approved 2024–29 strategy from serious "
-         "international crimes to human rights violations. [Eva to confirm: Note or Endorse]"),
-        ("Rohingya programme review",
-         "Six-month reassessment agreed in September falls around March 2027, between board "
-         "meetings. [Eva to confirm: how and when the board hears the outcome]"),
-        ("Prioritisation",
-         "Dormant or ineffective projects to be closed or refocused. [Eva to confirm: name projects or keep principled]"),
+         "The retreat broadened the framing of the board-approved 2024–29 strategy from serious "
+         "international crimes to human rights violations — brought to the board for discussion."),
+        ("Rohingya work",
+         "Progress to be taken stock of around March 2027, between board meetings; the ED will "
+         "report the outcome to the board."),
         ("Fundraising and post-OSF horizon",
          "Dedicated fundraising capacity under consideration — continues the Q2 item 6 discussion on "
-         "matching ambition to fundraising. [Eva to confirm: decided or exploratory]"),
+         "matching ambition to fundraising."),
         ("Governance and entity",
          "Legal name change VAI → hūmānus notified to OSF grant contacts; staff contract renewals "
          "in progress. Finance detail in Stacy McGill's papers."),
@@ -432,9 +402,10 @@ def build():
     for i, (head, body) in enumerate(watch):
         set_text(shape(s, f"TextBox {6 + 3 * i}"), head)
         set_text(shape(s, f"TextBox {7 + 3 * i}"), body)
+    remove(s, "Rectangle 20", "TextBox 21", "TextBox 22")  # Q2 had six items; five here
     footers.append((shape(s, "TextBox 23"), shape(s, "TextBox 24")))
 
-    # 13 — close
+    # 12 — close
     s = clone_slide(prs, close)
     set_text(shape(s, "TextBox 6"),
              "Q3 2026 Board Meeting  ·  Operations & Impact Update  ·  Sponsor: Eva Buzo (ED)  ·  DRAFT")
