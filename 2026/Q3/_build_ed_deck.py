@@ -1,446 +1,635 @@
 """
-Build the Q3 2026 ED Operations & Impact Update (DRAFT) from the Q2 2026 deck.
+hūmānus — Q3 2026 ED Operations & Impact Update (DRAFT), designed edition.
 
 Run from the repo root:
-    python3 2026/Q3/_build_ed_deck.py
+    HUMANUS_BRAND=/path/to/humanus-brand python3 2026/Q3/_build_ed_deck.py
 
-Template: 2026/Q2/08-ED-Operations-Impact-Y2D.pptx on branch
-agent/el/q2-2026-deck-polish (read via `git show`, so no copy is committed).
-Every slide is cloned from a Q2 slide so palette, typography, logo and footer
-match the board's last ED paper exactly. Content is laid out top-down by a
-small flow helper; `[Eva to confirm ...]` markers are set in Touch pink so the
-ED can find every open item at sign-off.
+Dependencies: python-pptx, Pillow
 
-Sources: MA's strand-mapped pre-draft (12 Oct 2026, green-lit by Eva), Eva's
-retreat summary, revisions, further activities and photos (CAP-518 comments, 12 Oct 2026), Stacy McGill's Q3 2026 Board
-Finance Report (branch agent/stacy-mcgill/01a12f27).
+Content: Eva's own edit of the deck (CAP-525, 13 Oct 2026), transcribed
+verbatim into the CONTENT dataclass at the bottom. No words added or removed;
+this script only controls layout, type and colour. The previous Q2-cloning
+builder lives in git history (commit 84e0986).
+
+Spec
+----
+Canvas      16:9, 13.333 × 7.5 in. Margins 0.7 in left/right.
+Palette     Core #410F37 (titles, body, dark slides), Bold #96FF14 (text on
+            Core), Touch #E12D64 (section labels ≥14pt bold, bullet marks).
+            White page. No tints, no extra colours.
+Type        Fagun throughout, weight-named families (Fagun Black / Bold /
+            Medium) plus base "Fagun" for Regular and its italic.
+            Titles Bold 30pt; subtitles Regular Italic 14pt; labels Bold
+            14pt all-caps Touch; body Regular 14–17pt, lead-ins Bold;
+            captions Regular Italic 10pt. Links in Core, underlined.
+            Theme fonts also set to Fagun so new text added in PowerPoint
+            stays on-brand.
+Fonts       Fagun is referenced, not embedded: PowerPoint cannot embed
+            CFF-flavoured OTF. Machines without Fagun substitute; install
+            Fagun from humanus-brand/fonts/ before presenting or exporting.
+Logo        Bold (lime) master on Core cover and closing slides — never
+            enlarged beyond native 5179 px; no other treatment.
+Pattern     Lime tile from humanus_patterns.png, cropped at build time,
+            as a full-height panel on cover and closing slides.
+Contrast    Core on white 13.6:1; Bold on Core 5.4:1 (≥14pt here);
+            Touch on white 4.4:1 — used only for 14pt bold labels (large-text
+            AA) and decorative bullet marks.
 """
 
 from __future__ import annotations
 
-import copy
 import io
-import math
-import re
-import subprocess
+import os
+from dataclasses import dataclass, field
 from pathlib import Path
 
+from PIL import Image
 from pptx import Presentation
 from pptx.dml.color import RGBColor
+from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.oxml.ns import qn
+from pptx.util import Emu, Inches, Pt
+from lxml import etree
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-TEMPLATE_REF = "agent/el/q2-2026-deck-polish:2026/Q2/08-ED-Operations-Impact-Y2D.pptx"
-OUT = REPO_ROOT / "2026" / "Q3" / "ED-Operations-Impact-Q3-2026-DRAFT.pptx"
+HERE = Path(__file__).resolve().parent
+ASSETS = HERE / "assets"
+BRAND = Path(os.environ.get("HUMANUS_BRAND", "/humanus-brand"))
+OUT = HERE / "ED-Operations-Impact-Q3-2026-DRAFT.pptx"
 
+CORE = RGBColor(0x41, 0x0F, 0x37)
+BOLD = RGBColor(0x96, 0xFF, 0x14)
 TOUCH = RGBColor(0xE1, 0x2D, 0x64)
-MARK = re.compile(r"(\[Eva to confirm[^\]]*\])")
+WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 
-FOOTER = "hūmānus  ·  Q3 2026 Board Meeting  ·  Operations & Impact Update  ·  DRAFT"
-CONTENT_TOP = 1874519
-CONTENT_BOTTOM = 6400800
-EMU_PER_PT = 12700
-ASSETS = REPO_ROOT / "2026" / "Q3" / "assets"
-BERKELEY_URL = "https://youtu.be/_d9m1Zl0Pro?si=I3CIYQGk4J4UphfQ"
-PHOTO_RIGHT = 11612880
-PHOTO_W = 3931920          # 4.3 in, single photo beside text
-PHOTO_W_SMALL = 3566160    # 3.9 in, two stacked photos
-TEXT_W_PHOTO = PHOTO_RIGHT - PHOTO_W - 228600 - 640080
-TEXT_W_TWO_PHOTOS = PHOTO_RIGHT - PHOTO_W_SMALL - 228600 - 640080
+F_BLACK = "Fagun Black"
+F_BOLD = "Fagun Bold"
+F_MEDIUM = "Fagun Medium"
+F_BOOK = "Fagun"                # Regular: the base family resolves on every platform
+F_BOOK_IT = "Fagun italic"      # sentinel → Fagun + italic flag (true Regular Italic)
+
+W, H = 13.333, 7.5
+ML = 0.7
+CW = W - 2 * ML               # content width
+TOP = 2.05                    # content top, every content slide
+PHOTO_W = 4.2
+PANEL_W = 4.0                 # pattern panel on cover / closing
 
 
 # ---------------------------------------------------------------- helpers
 
-def load_template() -> Presentation:
-    blob = subprocess.run(
-        ["git", "show", TEMPLATE_REF], cwd=REPO_ROOT, capture_output=True, check=True
-    ).stdout
-    return Presentation(io.BytesIO(blob))
+def _check(path: Path) -> Path:
+    if not path.exists():
+        raise SystemExit(f"Brand asset not found: {path} (set HUMANUS_BRAND)")
+    return path
 
 
-def shape(slide, name):
-    for sh in slide.shapes:
-        if sh.name == name:
-            return sh
-    raise KeyError(name)
-
-
-def remove(slide, *names):
-    for n in names:
-        el = shape(slide, n)._element
-        el.getparent().remove(el)
-
-
-def set_text(sh, text):
-    """Replace text, keeping the first run's formatting; colour markers Touch."""
-    tf = sh.text_frame
-    paras = tf.paragraphs
-    p0 = paras[0]._p
-    for p in paras[1:]:
-        p._p.getparent().remove(p._p)
-    proto_r = copy.deepcopy(p0.r_lst[0]) if p0.r_lst else None
-    for r in list(p0.r_lst):
-        p0.remove(r)
-    for br in p0.findall("{http://schemas.openxmlformats.org/drawingml/2006/main}br"):
-        p0.remove(br)
-    template_p = copy.deepcopy(p0)
-    for i, line in enumerate(text.split("\n")):
-        p = p0 if i == 0 else copy.deepcopy(template_p)
-        if i:
-            tf._txBody.append(p)
-        end = p.find("{http://schemas.openxmlformats.org/drawingml/2006/main}endParaRPr")
-        for seg in filter(None, MARK.split(line)):
-            r = copy.deepcopy(proto_r)
-            r.find("{http://schemas.openxmlformats.org/drawingml/2006/main}t").text = seg
-            if end is not None:
-                end.addprevious(r)
-            else:
-                p.append(r)
-        if MARK.search(line):
-            for run in sh.text_frame.paragraphs[i].runs:
-                if MARK.fullmatch(run.text):
-                    run.font.color.rgb = TOUCH
-
-
-def clone_slide(prs, src):
-    new = prs.slides.add_slide(src.slide_layout)
-    for ph in list(new.shapes):
-        ph._element.getparent().remove(ph._element)
-    rid_map = {}
-    for rid, rel in src.part.rels.items():
-        if rel.reltype.endswith("/image"):
-            rid_map[rid] = new.part.relate_to(rel._target, rel.reltype)
-    for sh in src.shapes:
-        el = copy.deepcopy(sh._element)
-        for node in el.iter():
-            for attr, val in list(node.attrib.items()):
-                if attr.endswith("}embed") and val in rid_map:
-                    node.set(attr, rid_map[val])
-        new.shapes._spTree.append(el)
-    return new
-
-
-def add_clone(slide, proto_shape, left, top, width, height, text):
-    el = copy.deepcopy(proto_shape._element)
-    slide.shapes._spTree.append(el)
-    sh = slide.shapes[-1]
-    sh.left, sh.top, sh.width, sh.height = left, top, width, height
-    if text is not None:
-        set_text(sh, text)
+def rect(slide, x, y, w, h, fill=None, line=None, line_w=1.25, name=None):
+    sh = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(h))
+    if fill is None:
+        sh.fill.background()
+    else:
+        sh.fill.solid()
+        sh.fill.fore_color.rgb = fill
+    if line is None:
+        sh.line.fill.background()
+    else:
+        sh.line.color.rgb = line
+        sh.line.width = Pt(line_w)
+    sh.shadow.inherit = False
+    style = sh._element.find(qn("p:style"))
+    if style is not None:
+        sh._element.remove(style)
+    if name:
+        sh.name = name
     return sh
 
 
-def est_height(text, width_emu, size_pt, char_em=0.55, leading=1.4):
-    width_pt = width_emu / EMU_PER_PT
-    per_line = max(1, int(width_pt / (char_em * size_pt)))
-    lines = sum(max(1, math.ceil(len(MARK.sub(lambda m: m.group(0), ln)) / per_line))
-                for ln in text.split("\n"))
-    return int(lines * size_pt * leading * EMU_PER_PT)
+def textbox(slide, x, y, w, h, anchor=MSO_ANCHOR.TOP, name=None):
+    tb = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
+    tf = tb.text_frame
+    tf.word_wrap = True
+    tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
+    tf.vertical_anchor = anchor
+    if name:
+        tb.name = name
+    return tf
 
 
-class Flow:
-    """Top-down placement of eyebrows, body paragraphs and bullets."""
-
-    def __init__(self, slide, protos, left=640080, width=10972800, top=CONTENT_TOP,
-                 body_pt=12, bullet_pt=13):
-        self.s, self.p = slide, protos
-        self.left, self.width, self.y = left, width, top
-        self.body_pt, self.bullet_pt = body_pt, bullet_pt
-
-    def eyebrow(self, text):
-        add_clone(self.s, self.p["eyebrow"], self.left, self.y, self.width, 457200, text)
-        self.y += 411480
-
-    def body(self, text, gap=160000):
-        h = est_height(text, self.width, self.body_pt)
-        add_clone(self.s, self.p["body"], self.left, self.y, self.width, h, text)
-        self.y += h + gap
-
-    def bullet(self, text, gap=150000):
-        tw = self.width - 274320
-        h = est_height(text, tw, self.bullet_pt)
-        add_clone(self.s, self.p["marker"], self.left, self.y + 118872, 109728, 109728, None)
-        sh = add_clone(self.s, self.p["bullet"], self.left + 274320, self.y, tw, h, text)
-        self.y += h + gap
-        return sh
-
-    def space(self, emu=120000):
-        self.y += emu
-
-    def check(self, label):
-        if self.y > CONTENT_BOTTOM:
-            print(f"WARNING: {label} overflows by {(self.y - CONTENT_BOTTOM) / 914400:.2f} in")
+def run(p, text, font, size, color, caps=False, link=None):
+    italic = font == F_BOOK_IT
+    font = F_BOOK if italic else font
+    r = p.add_run()
+    r.text = text
+    r.font.name = font
+    r.font.size = Pt(size)
+    r.font.color.rgb = color
+    r.font.bold = False
+    r.font.italic = italic
+    if caps:
+        r.font._rPr.set("cap", "all")
+    if link:
+        r.hyperlink.address = link
+    # East-Asian / complex-script slots too, so no glyph falls back to Calibri
+    rPr = r.font._rPr
+    for tag in ("a:ea", "a:cs"):
+        el = rPr.find(qn(tag))
+        if el is None:
+            el = etree.SubElement(rPr, qn(tag))
+        el.set("typeface", font)
+    return r
 
 
-def photo(slide, protos, path, top, caption, width=PHOTO_W, height=None, crop=None):
-    """Right-aligned photo with a small caption; returns the y below the caption."""
-    left = PHOTO_RIGHT - width
-    pic = slide.shapes.add_picture(str(path), left, top, width=width)
-    if crop:
-        pic.crop_top, pic.crop_bottom = crop
-    if height:
-        pic.height = height
-    y = top + pic.height + 45720
-    add_clone(slide, protos["caption"], left, y, width, 228600, caption)
-    return y + 228600 + 91440
+def para(tf, first=False, align=PP_ALIGN.LEFT, before=0, after=0, line=None):
+    p = tf.paragraphs[0] if first else tf.add_paragraph()
+    p.alignment = align
+    p.space_before = Pt(before)
+    p.space_after = Pt(after)
+    if line:
+        p.line_spacing = line
+    return p
 
 
-def link(sh, needle, url):
-    for p in sh.text_frame.paragraphs:
-        for r in p.runs:
-            if needle in r.text:
-                r.hyperlink.address = url
-                r.font.color.rgb = TOUCH
+def bullet(p, color=TOUCH, indent=0.24):
+    pPr = p._p.get_or_add_pPr()
+    pPr.set("marL", str(Inches(indent)))
+    pPr.set("indent", str(-Inches(indent)))
+    for tag in ("a:buClr", "a:buSzPct", "a:buFont", "a:buChar", "a:buNone"):
+        for el in pPr.findall(qn(tag)):
+            pPr.remove(el)
+    clr = etree.SubElement(pPr, qn("a:buClr"))
+    etree.SubElement(clr, qn("a:srgbClr")).set("val", str(color))
+    etree.SubElement(pPr, qn("a:buSzPct")).set("val", "80000")
+    etree.SubElement(pPr, qn("a:buFont")).set("typeface", "Arial")
+    etree.SubElement(pPr, qn("a:buChar")).set("char", "■")
 
 
-def frame(prs, tpl, title, subtitle):
-    """Clone the Rohingya-in-India slide down to title, accent, subtitle, footer."""
-    s = clone_slide(prs, tpl)
-    keep = {"Rectangle 1", "TextBox 2", "Rectangle 3", "TextBox 4", "TextBox 18", "TextBox 19"}
-    for sh in list(s.shapes):
-        if sh.name not in keep:
-            sh._element.getparent().remove(sh._element)
-    set_text(shape(s, "TextBox 2"), title)
-    set_text(shape(s, "TextBox 4"), subtitle)
-    return s
+def hang(p, indent=0.24):
+    """Continuation paragraph aligned with bullet text, no mark."""
+    pPr = p._p.get_or_add_pPr()
+    pPr.set("marL", str(Inches(indent)))
+    pPr.set("indent", "0")
+    etree.SubElement(pPr, qn("a:buNone"))
+
+
+def lead_runs(p, text, size, color=CORE, lead_font=F_BOLD, body_font=F_BOOK):
+    """'Lead — rest' → lead in Bold, rest in Regular. Text is unchanged."""
+    if " — " in text:
+        lead, rest = text.split(" — ", 1)
+        run(p, lead, lead_font, size, color)
+        run(p, " — " + rest, body_font, size, color)
+    else:
+        run(p, text, body_font, size, color)
+
+
+def label(tf, text, first=False, before=14, color=TOUCH):
+    p = para(tf, first=first, before=0 if first else before, after=6)
+    run(p, text, F_BOLD, 14, color, caps=True)
+    return p
+
+
+def add_picture_fit(slide, path, x, y, w):
+    with Image.open(path) as im:
+        pw, ph = im.size
+    h = w * ph / pw
+    slide.shapes.add_picture(str(path), Inches(x), Inches(y), Inches(w), Inches(h))
+    return h
+
+
+def logo(slide, variant, x_glyph, y, w):
+    """Place a logo so its visible glyphs (not the PNG padding) start at x_glyph."""
+    path = _check(BRAND / "logo" / f"humanus_logo_master_{variant}.png")
+    with Image.open(path) as im:
+        pw, ph = im.size
+        l, t, r, b = im.getbbox()
+    scale = w / pw
+    slide.shapes.add_picture(str(path), Inches(x_glyph - l * scale), Inches(y - t * scale),
+                             Inches(w), Inches(w * ph / pw))
+    return (b - t) * scale            # visible glyph height
+
+
+def pattern_panel(slide, x, w):
+    """Lime tile (row 1, col 2) of the official pattern sheet, cropped to the panel."""
+    path = _check(BRAND / "humanus_patterns.png")
+    with Image.open(path) as im:
+        tw, th = im.width // 3, im.height // 4
+        crop_h = th - 140
+        crop_w = int(crop_h * w / H)
+        tile = im.crop((tw + 120, 40, tw + 120 + crop_w, 40 + crop_h))
+        buf = io.BytesIO()
+        tile.save(buf, "PNG")
+    buf.seek(0)
+    slide.shapes.add_picture(buf, Inches(x), 0, Inches(w), Inches(H))
+
+
+def background(slide, color):
+    fill = slide.background.fill
+    fill.solid()
+    fill.fore_color.rgb = color
+
+
+def header(slide, title, subtitle):
+    tf = textbox(slide, ML, 0.55, CW, 0.6, anchor=MSO_ANCHOR.BOTTOM, name="Title")
+    run(para(tf, first=True), title, F_BOLD, 30, CORE)
+    tf = textbox(slide, ML, 1.3, CW, 0.4, name="Subtitle")
+    run(para(tf, first=True), subtitle, F_BOOK_IT, 14, CORE)
+
+
+def footer(slide, text, n, total):
+    tf = textbox(slide, ML, 7.0, 9.0, 0.25, name="Footer")
+    run(para(tf, first=True), text, F_BOOK, 9, CORE)
+    tf = textbox(slide, W - ML - 1.5, 7.0, 1.5, 0.25, name="Page")
+    run(para(tf, first=True, align=PP_ALIGN.RIGHT), f"{n} / {total}", F_BOOK, 9, CORE)
+
+
+def caption(slide, x, y, w, text):
+    tf = textbox(slide, x, y, w, 0.3, name="Caption")
+    run(para(tf, first=True), text, F_BOOK_IT, 10, CORE)
+
+
+def bullets_block(tf, items, size=14, first=False):
+    for i, item in enumerate(items):
+        lines = item if isinstance(item, tuple) else (item,)
+        p = para(tf, first=first and i == 0, after=0 if len(lines) > 1 else 7)
+        bullet(p)
+        lead_runs(p, lines[0], size)
+        for extra in lines[1:]:
+            p = para(tf, after=7)
+            hang(p)
+            text, url = extra
+            run(p, text, F_BOOK, size, CORE, link=url)
+
+
+def set_theme_fonts(prs):
+    """Point the theme's major/minor Latin fonts at Fagun."""
+    master = prs.slide_masters[0]
+    for rel in master.part.rels.values():
+        if rel.reltype.endswith("/theme"):
+            part = rel.target_part
+            root = etree.fromstring(part.blob)
+            ns = {"a": "http://schemas.openxmlformats.org/drawingml/2006/main"}
+            root.find(".//a:majorFont/a:latin", ns).set("typeface", F_BOLD)
+            root.find(".//a:minorFont/a:latin", ns).set("typeface", F_BOOK)
+            hl = root.find(".//a:hlink", ns)
+            for ch in list(hl):
+                hl.remove(ch)
+            etree.SubElement(hl, qn("a:srgbClr")).set("val", str(CORE))
+            part._blob = etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
+
+
+# ---------------------------------------------------------------- slides
+
+def slide_cover(prs, c):
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    background(s, CORE)
+    pattern_panel(s, W - PANEL_W, PANEL_W)
+    x = 0.9
+    gh = logo(s, "bold", x, 1.35, 6.4)
+    y = 1.35 + gh + 0.55
+    tf = textbox(s, x, y, W - PANEL_W - x - 0.6, 1.0)
+    run(para(tf, first=True, after=4), c.cover_line, F_MEDIUM, 20, BOLD)
+    run(para(tf), c.cover_date, F_BOOK, 16, BOLD)
+    tf = textbox(s, x, 4.75, W - PANEL_W - x - 0.6, 1.0)
+    run(para(tf, first=True, after=6), c.tagline_cover, F_BLACK, 30, BOLD)
+    run(para(tf), c.values, F_MEDIUM, 12, BOLD)
+    tf = textbox(s, x, 6.75, W - PANEL_W - x - 0.4, 0.4)
+    run(para(tf, first=True), c.sponsor_line, F_BOOK_IT, 10, BOLD)
+
+
+def slide_goals(prs, c, n, total):
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    header(s, c.goals_title, c.goals_subtitle)
+    gap = 0.3
+    cw = (CW - 2 * gap) / 3
+    for i, text in enumerate(c.goals):
+        x = ML + i * (cw + gap)
+        rect(s, x, TOP, cw, 3.65, fill=CORE, name=f"Goal {i + 1}")
+        tf = textbox(s, x + 0.35, TOP + 0.3, cw - 0.7, 1.2)
+        run(para(tf, first=True), str(i + 1), F_BLACK, 72, BOLD)
+        tf = textbox(s, x + 0.35, TOP + 1.65, cw - 0.7, 1.8)
+        run(para(tf, first=True, line=1.1), text, F_MEDIUM, 18, BOLD)
+    tf = textbox(s, ML, TOP + 3.65 + 0.4, CW, 0.5)
+    run(para(tf, first=True), c.goals_note, F_BOOK_IT, 14, CORE)
+    footer(s, c.footer, n, total)
+
+
+def _cell(cell, text, font, size, color, fill=None):
+    cell.margin_left = cell.margin_right = Inches(0.2)
+    cell.margin_top = cell.margin_bottom = Inches(0.08)
+    cell.vertical_anchor = MSO_ANCHOR.MIDDLE
+    tf = cell.text_frame
+    tf.word_wrap = True
+    run(para(tf, first=True), text, font, size, color)
+    if fill is None:
+        cell.fill.background()
+    else:
+        cell.fill.solid()
+        cell.fill.fore_color.rgb = fill
+    tcPr = cell._tc.get_or_add_tcPr()
+    for side in ("a:lnL", "a:lnR", "a:lnT", "a:lnB"):
+        ln = etree.SubElement(tcPr, qn(side))
+        if side == "a:lnB":
+            ln.set("w", str(Pt(1)))
+            sf = etree.SubElement(ln, qn("a:solidFill"))
+            etree.SubElement(sf, qn("a:srgbClr")).set("val", str(CORE))
+        else:
+            ln.set("w", "0")
+            etree.SubElement(ln, qn("a:noFill"))
+    # schema order: borders must precede the fill element
+    for f in tcPr.findall(qn("a:solidFill")) + tcPr.findall(qn("a:noFill")):
+        tcPr.remove(f)
+        tcPr.append(f)
+
+
+def slide_where(prs, c, n, total):
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    header(s, c.where_title, c.where_subtitle)
+    rows = len(c.where_rows) + 1
+    gf = s.shapes.add_table(rows, 2, Inches(ML), Inches(TOP), Inches(CW), Inches(0.6 + 1.05 * (rows - 1)))
+    gf.name = "Programme table"
+    tbl = gf.table
+    tblPr = tbl._tbl.tblPr
+    for attr in ("firstRow", "bandRow"):
+        tblPr.set(attr, "0")
+    style = tblPr.find(qn("a:tableStyleId"))
+    if style is not None:
+        tblPr.remove(style)
+    tbl.columns[0].width = Inches(6.6)
+    tbl.columns[1].width = Inches(CW - 6.6)
+    tbl.rows[0].height = Inches(0.6)
+    _cell(tbl.cell(0, 0), c.where_head[0], F_BOLD, 14, BOLD, fill=CORE)
+    _cell(tbl.cell(0, 1), c.where_head[1], F_BOLD, 14, BOLD, fill=CORE)
+    for r, (strand, funder) in enumerate(c.where_rows, start=1):
+        tbl.rows[r].height = Inches(1.05)
+        _cell(tbl.cell(r, 0), strand, F_MEDIUM, 20, CORE)
+        _cell(tbl.cell(r, 1), funder, F_BOOK, 16, CORE)
+    footer(s, c.footer, n, total)
+
+
+def slide_text_photo(prs, c, n, total, title, subtitle, blocks, photo, cap, size=14, photo_w=PHOTO_W):
+    """blocks: list of (label, paragraph-str | list-of-bullets)."""
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    header(s, title, subtitle)
+    photo_x = W - ML - photo_w
+    tf = textbox(s, ML, TOP, photo_x - ML - 0.45, 4.8, name="Body")
+    for i, (lab, body) in enumerate(blocks):
+        label(tf, lab, first=i == 0, before=size)
+        if isinstance(body, str):
+            run(para(tf, after=4, line=1.05), body, F_BOOK, size, CORE)
+        else:
+            bullets_block(tf, body, size=size)
+    ph = add_picture_fit(s, ASSETS / photo, photo_x, TOP + 0.05, photo_w)
+    caption(s, photo_x, TOP + 0.05 + ph + 0.1, photo_w, cap)
+    footer(s, c.footer, n, total)
+
+
+def slide_dialogue(prs, c, n, total):
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    header(s, c.dialogue_title, c.dialogue_subtitle)
+    left_w = 5.5
+    tf = textbox(s, ML, TOP, left_w, 4.6)
+    label(tf, c.dialogue_label_1, first=True)
+    run(para(tf, line=1.1), c.dialogue_body, F_BOOK, 16, CORE)
+    px = ML + left_w + 0.45
+    pw = W - ML - px
+    rect(s, px, TOP, pw, 4.55, fill=CORE, name="Since 29 June panel")
+    tf = textbox(s, px + 0.45, TOP + 0.4, pw - 0.9, 3.8)
+    label(tf, c.dialogue_label_2, first=True, color=BOLD)
+    p = para(tf, before=6, line=1.1)
+    lead_runs(p, c.dialogue_since, 20, color=BOLD, lead_font=F_BOLD, body_font=F_MEDIUM)
+    footer(s, c.footer, n, total)
+
+
+def slide_business(prs, c, n, total):
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    header(s, c.biz_title, c.biz_subtitle)
+    tf = textbox(s, ML, TOP, CW, 1.2)
+    label(tf, c.biz_label_1, first=True)
+    run(para(tf, line=1.05), c.biz_framework, F_BOOK, 16, CORE)
+    tf = textbox(s, ML, TOP + 1.45, CW, 0.35)
+    label(tf, c.biz_label_2, first=True)
+    gap = 0.3
+    cw = (CW - 2 * gap) / 3
+    y = TOP + 1.95
+    ch = 6.7 - y
+    for i, (head, paras) in enumerate(c.biz_streams):
+        x = ML + i * (cw + gap)
+        rect(s, x, y, cw, ch, line=CORE, name=head)
+        tf = textbox(s, x + 0.3, y + 0.28, cw - 0.6, ch - 0.5)
+        run(para(tf, first=True, after=8), head, F_BOLD, 18, CORE)
+        for t in paras:
+            run(para(tf, after=6, line=1.05), t, F_BOOK, 14, CORE)
+    footer(s, c.footer, n, total)
+
+
+def slide_further(prs, c, n, total):
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    header(s, c.further_title, c.further_subtitle)
+    tf = textbox(s, ML, TOP, CW, 0.35)
+    label(tf, c.further_label, first=True)
+    gap = 0.3
+    cw = (CW - gap) / 2
+    y = TOP + 0.55
+    for i, text in enumerate(c.further_items):
+        x = ML + i * (cw + gap)
+        rect(s, x, y, cw, 3.4, fill=CORE, name=f"Activity {i + 1}")
+        tf = textbox(s, x + 0.45, y + 0.45, cw - 0.9, 2.6)
+        lead, rest = text.split(" — ", 1)
+        p = para(tf, first=True, line=1.1)
+        run(p, lead, F_BOLD, 20, BOLD)
+        run(p, " — " + rest, F_MEDIUM, 18, BOLD)
+    footer(s, c.footer, n, total)
+
+
+def slide_closing(prs, c):
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    background(s, CORE)
+    pattern_panel(s, 0, PANEL_W)
+    x = PANEL_W + 0.9
+    gh = logo(s, "bold", x, 1.9, 6.4)
+    tf = textbox(s, x, 1.9 + gh + 0.5, W - x - ML, 1.2)
+    run(para(tf, first=True, after=6), c.tagline_close, F_BLACK, 30, BOLD)
+    run(para(tf), c.values, F_MEDIUM, 12, BOLD)
+    tf = textbox(s, x, 5.2, W - x - ML, 0.4)
+    run(para(tf, first=True), c.contact, F_MEDIUM, 16, BOLD)
+    tf = textbox(s, x, 6.75, W - x - ML, 0.4)
+    run(para(tf, first=True), c.closing_line, F_BOOK_IT, 10, BOLD)
 
 
 # ---------------------------------------------------------------- content
 
-def build():
-    prs = load_template()
-    q2 = list(prs.slides)
-    n_template = len(q2)
-    cover, goals, table, arakan, fcdo, india, wd, frontline, bhr, outlook, close = q2
+@dataclass
+class Content:
+    footer: str = "hūmānus  ·  Q3 2026 Board Meeting  ·  Operations & Impact Update  ·  DRAFT"
 
-    protos = {
-        "eyebrow": shape(india, "TextBox 5"),
-        "body": shape(india, "TextBox 6"),
-        "marker": shape(india, "Rectangle 8"),
-        "bullet": shape(india, "TextBox 9"),
-        "qhead": shape(bhr, "TextBox 8"),
-        "qbody": shape(bhr, "TextBox 9"),
-        "bar": shape(outlook, "Rectangle 5"),
-        "whead": shape(outlook, "TextBox 6"),
-        "wbody": shape(outlook, "TextBox 7"),
-        "caption": shape(india, "TextBox 18"),
-    }
-    footers = []  # (footer shape, page shape)
+    cover_line: str = "update since 29 June  ·  Q3 2026 Board Meeting"
+    cover_date: str = "29 October 2026"
+    tagline_cover: str = "Humanising Justice"
+    tagline_close: str = "Humanising justice"
+    values: str = "ACCOUNTABILITY  ·  COMMUNITY  ·  EVIDENCE"
+    sponsor_line: str = ("Sponsor: Eva Buzo, Executive Director  ·  Agenda item TBC  ·  15 minutes  ·  "
+                         "Discussion  ·  DRAFT for ED sign-off")
 
-    # 1 — cover
-    s = clone_slide(prs, cover)
-    set_text(shape(s, "TextBox 4"), "update since 29 June  ·  Q3 2026 Board Meeting")
-    set_text(shape(s, "TextBox 5"), "29 October 2026")
-    set_text(shape(s, "TextBox 8"),
-             "Sponsor: Eva Buzo, Executive Director  ·  Agenda item TBC  ·  "
-             "15 minutes  ·  Discussion  ·  DRAFT for ED sign-off")
+    goals_title: str = "Three goals guide everything we do"
+    goals_subtitle: str = "Our 2024–29 strategy frames the year."
+    goals: list = field(default_factory=lambda: [
+        "Victims secure outcomes in line with their own conception of justice.",
+        "Victims are empowered by the process of pursuing justice — not just by its results.",
+        "Justice processes are transformed to put victims at the centre.",
+    ])
+    goals_note: str = ("The September retreat broadened our framing from serious international crimes "
+                       "to human rights violations (slide 9).")
 
-    # 2 — three goals
-    s = clone_slide(prs, goals)
-    set_text(shape(s, "TextBox 14"),
-             "The September retreat broadened our framing from serious international crimes to "
-             "human rights violations (slide 9).")
-    footers.append((shape(s, "TextBox 15"), shape(s, "TextBox 16")))
-
-    # 3 — where the work has sat (programme and funder only)
-    s = clone_slide(prs, table)
-    set_text(shape(s, "TextBox 2"), "Where the work has sat since June")
-    set_text(shape(s, "TextBox 4"),
-             "29 June – 12 October 2026, by funded programme and other significant strands.")
-    rows = [
+    where_title: str = "Where the work has sat since June"
+    where_subtitle: str = "29 June – 12 October 2026, by funded programme and other significant strands."
+    where_head: tuple = ("Programme / strand", "Funder")
+    where_rows: list = field(default_factory=lambda: [
         ("Rohingya in India — legal protection", "Core funding"),
         ("Rohingya dialogue — Bangladesh and Arakan", "FCDO (UK) and Swiss FDFA, via Stimson Center"),
         ("Accountability for business and human rights", "Core funding"),
-        ("Public engagement", "Core funding"),
-    ]
-    # Drop the status column and the unused rows; widen the two remaining columns.
-    remove(s, "TextBox 8", *[f"TextBox {12 + 4 * r}" for r in range(len(rows))])
-    for r in range(len(rows), 6):
-        remove(s, f"Rectangle {9 + 4 * r}", *[f"TextBox {10 + 4 * r + c}" for c in range(3)])
-    remove(s, "TextBox 33")
-    prog_w, fund_x = 5486400, 6309360
-    shape(s, "TextBox 6").width = prog_w
-    shape(s, "TextBox 7").left, shape(s, "TextBox 7").width = fund_x, 5212080
-    for name in ("TextBox 6", "TextBox 7"):
-        shape(s, name).text_frame.paragraphs[0].runs[0].font.name = "Fagun Bold"
-    for r, (prog, funder) in enumerate(rows):
-        p, fu = shape(s, f"TextBox {10 + 4 * r}"), shape(s, f"TextBox {11 + 4 * r}")
-        p.text_frame.paragraphs[0].runs[0].font.name = "Fagun Bold"
-        set_text(p, prog)
-        set_text(fu, funder)
-        p.width = prog_w
-        fu.left, fu.width = fund_x, 5212080
-    footers.append((shape(s, "TextBox 34"), shape(s, "TextBox 35")))
+    ])
 
-    # 4 — Rohingya in India
-    s = frame(prs, india, "Rohingya in India — legal protection",
-              "Core funded  ·  no project grant  ·  Lead: Arati Ranade, India Programme Manager")
-    f = Flow(s, protos, width=TEXT_W_PHOTO, bullet_pt=12)
-    f.eyebrow("What the strand is")
-    f.body("Direct legal intervention for detained Rohingya refugees in India, building a "
-           "cross-state network of lawyers and an evidentiary base on detention and deportation "
-           "patterns. Funded from core — no donor restriction on case selection or strategy.", gap=110000)
-    f.eyebrow("Since 29 June")
-    f.bullet("Delhi detention roundtable (5 July) — lawyers from across states convened over three "
-             "panels to discuss detention litigation strategy.", gap=110000)
-    f.bullet("Right to Education — strategy note drafted on an education-rights route for detained "
-             "minors, alongside the refugee route; raised with African states in Geneva (25 August).", gap=110000)
-    f.bullet("Litigation pipeline — habeas corpus petition in drafting; bail application being "
-             "finalised for counsel's review; Right to Information petitioner being identified.", gap=110000)
-    f.bullet("Lawyer network — Jammu & Kashmir leads in place; Rajasthan, Tripura and Hyderabad "
-             "being assessed. Case-law report on Rohingya deportation in preparation.", gap=110000)
-    f.check("India")
-    photo(s, protos, ASSETS / "delhi-detention-roundtable.jpg", CONTENT_TOP, "Delhi, July 2026")
-    footers.append((shape(s, "TextBox 18"), shape(s, "TextBox 19")))
+    india_title: str = "Rohingya in India — legal protection"
+    india_subtitle: str = "Core funded  ·  no project grant  ·  Lead: Arati Ranade, India Programme Manager"
+    india_blocks: list = field(default_factory=lambda: [
+        ("What the strand is",
+         "Direct legal intervention for detained Rohingya refugees in India, building a cross-state network "
+         "of lawyers and an evidentiary base on detention and deportation patterns. Funded from core — no "
+         "donor restriction on case selection or strategy."),
+        ("Since 29 June", [
+            "Delhi detention roundtable (5 July) — lawyers from across states convened over three panels to "
+            "discuss detention litigation strategy.",
+            "Right to Education — strategy note drafted on an education-rights route for detained minors, "
+            "alongside the refugee route; raised with African states in Geneva (25 August).",
+            "Litigation pipeline — habeas corpus petition in drafting; bail application being finalised for "
+            "counsel's review; Right to Information petitioner being identified.",
+            "Lawyer network — West Bengal, Uttar Pradesh and Delhi lawyers in place. Case-law report on "
+            "Rohingya deportation in preparation.",
+        ]),
+    ])
+    india_photo: str = "delhi-detention-roundtable.jpg"
+    india_caption: str = "Delhi, July 2026"
 
-    # 5 — Rohingya dialogue (FCDO and Swiss FDFA fund the same project)
-    s = frame(prs, india, "Rohingya dialogue — Bangladesh and Arakan",
-              "FCDO (UK) and Swiss FDFA, via Stimson Center as prime  ·  hūmānus as implementing partner")
-    f = Flow(s, protos, bullet_pt=12)
-    f.eyebrow("What the project is")
-    f.body("Sustained dialogue and engagement with Rohingya leadership, building trust among "
-           "Rohingya, Arakanese and Bangladesh stakeholders through bilateral engagement, capacity "
-           "building and facilitated dialogue. FCDO and Swiss FDFA funding support the same "
-           "project; both reimburse in arrears.", gap=110000)
-    f.eyebrow("Since 29 June")
-    f.bullet("Dialogue work continuing with Rohingya leadership.", gap=110000)
-    f.bullet("FCDO — hūmānus inputs being prepared for the Stimson-led interim report (June–October); "
-             "June–October claim in GBP and Schedule 2 disbursement amounts being agreed.", gap=110000)
-    f.bullet("Swiss FDFA — head grant and approved joint workplan requested from Stimson.", gap=110000)
-    f.bullet("Analysis — ten reports by Sawyadullah on Rohingya relationships with the "
-             "United States, China, Bangladesh, India and Pakistan, to aid the dialogue and support "
-             "Rohingya leadership. Website launching November 2026; a workshop on the content will "
-             "be run in the Rohingya language.", gap=110000)
-    f.check("Dialogue")
-    footers.append((shape(s, "TextBox 18"), shape(s, "TextBox 19")))
+    dialogue_title: str = "Rohingya dialogue — Bangladesh and Arakan"
+    dialogue_subtitle: str = ("FCDO (UK) and Swiss FDFA, via Stimson Center as prime  ·  "
+                              "hūmānus as implementing partner")
+    dialogue_label_1: str = "What the project is"
+    dialogue_body: str = ("Sustained dialogue and engagement with Rohingya leadership, building trust among "
+                          "Rohingya, Arakanese and Bangladesh stakeholders through bilateral engagement, capacity "
+                          "building and facilitated dialogue. FCDO and Swiss FDFA funding support the same "
+                          "project; both reimburse in arrears.")
+    dialogue_label_2: str = "Since 29 June"
+    dialogue_since: str = ("Analysis — ten reports by Sawyadullah on Rohingya relationships with the United "
+                           "States, China, Bangladesh, India and Pakistan, to aid the dialogue and support "
+                           "Rohingya leadership. Website launching November 2026; a workshop on the content "
+                           "will be run in the Rohingya language.")
 
-    # 6 — Business and human rights
-    s = clone_slide(prs, bhr)
-    set_text(shape(s, "TextBox 4"),
-             "Core funded  ·  legal action, regulatory complaint and advocacy — confirmed as a core model at the retreat")
-    set_text(shape(s, "TextBox 8"), "Meta / Facebook")
-    set_text(shape(s, "TextBox 9"),
-             "Meta has responded to our case, including a request for particulars. "
-             "[Eva to confirm: source to be supplied] Documentary narrative and video series in production.")
-    set_text(shape(s, "TextBox 10"), "Adani")
-    set_text(shape(s, "TextBox 11"),
-             "Coordination and investigation work continuing, including research on Australian "
-             "super-fund exposure, fiduciary-duty case law, the OFAC civil probe and Adani Defence.")
-    set_text(shape(s, "TextBox 12"), "Other accountability work")
-    set_text(shape(s, "TextBox 13"),
-             "US and UK greenwashing opinions (Reuben brothers / Escénica) in progress. "
-             "CERD / ICJ brief concerning Australia in preparation.")
-    set_text(shape(s, "TextBox 15"),
-             "At Q2 we proposed a dedicated Adani paper for this meeting. Coordination and "
-             "investigation work is continuing; the board is updated through this report.")
-    footers.append((shape(s, "TextBox 16"), shape(s, "TextBox 17")))
+    biz_title: str = "Accountability for business and human rights"
+    biz_subtitle: str = ("Core funded  ·  legal action, regulatory complaint and advocacy — confirmed as a "
+                         "core model at the retreat")
+    biz_label_1: str = "THE FRAMEWORK"
+    biz_framework: str = ("Bringing together our work that holds business actors accountable for contribution "
+                          "to, or benefit from, serious international crimes — across litigation, regulatory "
+                          "complaint, and investor-facing advocacy.")
+    biz_label_2: str = "ACTIVE WORKSTREAMS"
+    biz_streams: list = field(default_factory=lambda: [
+        ("Meta / Facebook", [
+            "Meta has responded to our case, including a request for particulars.",
+            "Documentary narrative and video series in production with Amnesty International",
+        ]),
+        ("Adani", [
+            "Coordination and investigation work continuing, including research on Australian super-fund "
+            "exposure, fiduciary-duty case law, the OFAC civil probe and Adani Defence.",
+        ]),
+        ("Against the Tide Campaign", [
+            "Supporting activists in Puerto Rico, Jamaica and Seychelles to fight development of luxury "
+            "resorts in environmentally sensitive protected areas.",
+        ]),
+    ])
 
-    # 7 — Public engagement
-    s = frame(prs, india, "Public engagement",
-              "Core funded  ·  Against the Tide, speaking, advocacy and donor relations")
-    f = Flow(s, protos, width=TEXT_W_TWO_PHOTOS, bullet_pt=12)
-    f.eyebrow("Against the Tide")
-    f.bullet("Eva Buzo Swim × Small Islands Coalition (28 August); Islands Swim: Seychelles "
-             "(15 September); small-islands press, social and documentary session at UNGA (25 September).",
-             gap=100000)
-    f.bullet("The swim supported the Esencia NO VA environmental campaign, with a public panel and "
-             "press coverage (El Vocero).", gap=100000)
-    f.eyebrow("Speaking and advocacy")
-    talk = f.bullet("Berkeley (28 September) — keynote, Human Rights for Victims of Conflict in a "
-                    "Fragmenting World; session with Berkeley IIS clinic students on conflict "
-                    "monitoring.\nRecording: youtu.be/_d9m1Zl0Pro", gap=100000)
-    link(talk, "youtu.be", BERKELEY_URL)
-    f.bullet("Amnesty × hūmānus side event at UNGA (25 September).", gap=100000)
-    f.eyebrow("Donor relations")
-    f.bullet("OSF partner retreat, Mexico — Finding Each Other on Shifting Ground, bringing together "
-             "around 100 OSF partners; good connections made. Preceded by online pre-gathering "
-             "sessions in July.", gap=100000)
-    f.check("Public engagement")
-    y = photo(s, protos, ASSETS / "esencia-no-va-panel.jpg", CONTENT_TOP, "Esencia NO VA panel",
-              width=PHOTO_W_SMALL)
-    photo(s, protos, ASSETS / "el-vocero-interview.jpg", y, "El Vocero interview",
-          width=PHOTO_W_SMALL, height=1900000, crop=(0.12, 0.332))
-    footers.append((shape(s, "TextBox 18"), shape(s, "TextBox 19")))
+    public_title: str = "Public engagement"
+    public_subtitle: str = "Core funded  ·  Against the Tide, speaking, advocacy and donor relations"
+    public_blocks: list = field(default_factory=lambda: [
+        ("Speaking and advocacy", [
+            ("Berkeley (28 September) — keynote, Human Rights for Victims of Conflict in a Fragmenting World; "
+             "session with Berkeley IIS clinic students on conflict monitoring.",
+             ("Recording: youtu.be/_d9m1Zl0Pro", "https://youtu.be/_d9m1Zl0Pro?si=I3CIYQGk4J4UphfQ")),
+            "Amnesty × hūmānus side event at UNGA (25 September).",
+        ]),
+        ("Donor relations", [
+            "OSF partner retreat, Mexico — Finding Each Other on Shifting Ground, bringing together around "
+            "100 OSF partners; good connections made.",
+        ]),
+    ])
+    public_photo: str = "esencia-no-va-panel.jpg"
+    public_caption: str = "Esencia NO VA panel"
 
-    # 8 — Further activities
-    s = frame(prs, india, "Further activities",
-              "Advisory work outside our funded programmes")
-    f = Flow(s, protos)
-    f.eyebrow("Since 29 June")
-    f.bullet("Australian war crimes, victim participation — advice to two sets of clients in "
-             "Australia on victim participation in prosecutions of alleged war crimes committed "
-             "in Afghanistan.")
-    f.bullet("Caste-based discrimination — advice on a complaint to the Australian Human Rights "
-             "Commission against a New South Wales local council, concerning discrimination against "
-             "Dalit, Bahujan and Adivasi communities. Instructed September 2026.")
-    f.check("Further activities")
-    footers.append((shape(s, "TextBox 18"), shape(s, "TextBox 19")))
+    further_title: str = "Further activities"
+    further_subtitle: str = "Advisory work outside our funded programmes"
+    further_label: str = "Since 29 June"
+    further_items: list = field(default_factory=lambda: [
+        "Australian war crimes, victim participation — advice to two sets of clients in Australia on victim "
+        "participation in prosecutions of alleged war crimes committed in Afghanistan.",
+        "Caste-based discrimination — advice on a complaint to the Australian Human Rights Commission against "
+        "a New South Wales local council, concerning discrimination against Dalit, Bahujan and Adivasi "
+        "communities. Instructed September 2026.",
+    ])
 
-    # 9 — Retreat
-    s = frame(prs, india, "Strategy retreat — what we decided",
-              "Team retreat, September 2026  ·  strategy, impact and organisational focus")
-    f = Flow(s, protos, width=TEXT_W_PHOTO, bullet_pt=12)
-    f.eyebrow("Strategy and impact")
-    f.bullet("Plan from what clients need — an outcomes ladder linking litigation, mediation and "
-             "community engagement to meaningful results.", gap=110000)
-    f.bullet("Broaden the framing from serious international crimes to human rights violations; "
-             "stay people-focused and prioritise systemic change.", gap=110000)
-    f.bullet("Corporate accountability — legal action, regulatory complaints and advocacy — "
-             "adopted as a core model, including Adani and Facebook.", gap=110000)
-    f.bullet("Rohingya — continue the lawyer-network and coordination approach, and take stock "
-             "of progress after six months.", gap=110000)
-    f.eyebrow("Priorities")
-    f.bullet("Keep excellence, rigour and clear accountability central; new geographies only "
-             "where needs-driven.", gap=110000)
-    f.bullet("Tell the organisation's story well and show impact to clients and funders; "
-             "consider dedicated fundraising capacity.", gap=110000)
-    f.check("Retreat")
-    photo(s, protos, ASSETS / "team-retreat.jpg", CONTENT_TOP, "Team retreat, September 2026")
-    footers.append((shape(s, "TextBox 18"), shape(s, "TextBox 19")))
+    retreat_title: str = "Strategy retreat — what we decided"
+    retreat_subtitle: str = "Team retreat, September 2026  ·  strategy, impact and organisational focus"
+    retreat_blocks: list = field(default_factory=lambda: [
+        ("Strategy and impact", [
+            "Plan from what clients need — an outcomes ladder linking litigation, mediation and community "
+            "engagement to meaningful results.",
+            "Broaden the framing from serious international crimes to human rights violations; stay "
+            "people-focused and prioritise systemic change.",
+            "Corporate accountability — legal action, regulatory complaints and advocacy — adopted as a core "
+            "model, including Adani and Facebook.",
+            "Rohingya — continue the lawyer-network and coordination approach, and take stock of progress "
+            "after six months.",
+        ]),
+        ("Priorities", [
+            "Keep excellence, rigour and clear accountability central; new geographies only where needs-driven.",
+            "Tell the organisation's story well and show impact to clients and funders; consider dedicated "
+            "fundraising capacity.",
+        ]),
+    ])
+    retreat_photo: str = "team-retreat.jpg"
+    retreat_caption: str = "Team retreat, September 2026"
 
-    # 10 — Strategic outlook and watch-items
-    s = clone_slide(prs, outlook)
-    set_text(shape(s, "TextBox 4"), "Things to keep in view between now and the February 2027 meeting.")
-    watch = [
-        ("Cash position",
-         "Cash USD 33,679 at 30 September (Q3 management accounts, unaudited); no contracted "
-         "receipts until the FCDO Phase II claim (indicatively November) and OSF Year 3 (January 2027)."),
-        ("Strategic framing",
-         "The retreat broadened the framing of the board-approved 2024–29 strategy from serious "
-         "international crimes to human rights violations — brought to the board for discussion."),
-        ("Rohingya work",
-         "Progress to be taken stock of around March 2027, between board meetings; the ED will "
-         "report the outcome to the board."),
-        ("Fundraising and post-OSF horizon",
-         "Dedicated fundraising capacity under consideration — continues the Q2 item 6 discussion on "
-         "matching ambition to fundraising."),
-        ("Governance and entity",
-         "Legal name change VAI → hūmānus notified to OSF grant contacts; staff contract renewals "
-         "in progress."),
-    ]
-    for i, (head, body) in enumerate(watch):
-        set_text(shape(s, f"TextBox {6 + 3 * i}"), head)
-        set_text(shape(s, f"TextBox {7 + 3 * i}"), body)
-    remove(s, "Rectangle 20", "TextBox 21", "TextBox 22")  # Q2 had six items; five here
-    footers.append((shape(s, "TextBox 23"), shape(s, "TextBox 24")))
+    contact: str = "www.humanus.co  ·  hello@humanus.co"
+    closing_line: str = ("Q3 2026 Board Meeting  ·  Operations & Impact Update  ·  Sponsor: Eva Buzo (ED)  ·  "
+                         "DRAFT")
 
-    # 11 — close
-    s = clone_slide(prs, close)
-    set_text(shape(s, "TextBox 6"),
-             "Q3 2026 Board Meeting  ·  Operations & Impact Update  ·  Sponsor: Eva Buzo (ED)  ·  DRAFT")
 
-    total = len(prs.slides) - n_template
-    for i, (foot, page) in enumerate(footers, start=2):
-        set_text(foot, FOOTER)
-        set_text(page, f"{i} / {total}")
+def build(c: Content, out: Path = OUT) -> Path:
+    prs = Presentation()
+    prs.slide_width = Inches(W)
+    prs.slide_height = Inches(H)
+    set_theme_fonts(prs)
+    total = 10
 
-    sld_ids = prs.slides._sldIdLst
-    for sld_id in list(sld_ids)[:n_template]:
-        prs.part.drop_rel(sld_id.rId)
-        sld_ids.remove(sld_id)
+    slide_cover(prs, c)
+    slide_goals(prs, c, 2, total)
+    slide_where(prs, c, 3, total)
+    slide_text_photo(prs, c, 4, total, c.india_title, c.india_subtitle, c.india_blocks,
+                     c.india_photo, c.india_caption)
+    slide_dialogue(prs, c, 5, total)
+    slide_business(prs, c, 6, total)
+    slide_text_photo(prs, c, 7, total, c.public_title, c.public_subtitle, c.public_blocks,
+                     c.public_photo, c.public_caption, size=17, photo_w=5.2)
+    slide_further(prs, c, 8, total)
+    slide_text_photo(prs, c, 9, total, c.retreat_title, c.retreat_subtitle, c.retreat_blocks,
+                     c.retreat_photo, c.retreat_caption)
+    slide_closing(prs, c)
 
-    prs.save(OUT)
-    print(f"wrote {OUT.relative_to(REPO_ROOT)} ({total} slides)")
+    assert len(prs.slides) == total
+    prs.core_properties.title = "ED Operations & Impact Update — Q3 2026 Board Meeting (DRAFT)"
+    prs.core_properties.author = "hūmānus"
+    prs.save(out)
+    return out
 
 
 if __name__ == "__main__":
-    build()
+    print(build(Content()))
