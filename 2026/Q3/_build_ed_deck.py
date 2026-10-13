@@ -1,5 +1,5 @@
 """
-hūmānus — Q3 2026 ED Operations & Impact Update (DRAFT), designed edition.
+hūmānus — Q3 2026 ED Operations & Impact Update, designed edition.
 
 Run from the repo root:
     HUMANUS_BRAND=/path/to/humanus-brand python3 2026/Q3/_build_ed_deck.py
@@ -56,7 +56,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 ASSETS = HERE / "assets"
 BRAND = Path(os.environ.get("HUMANUS_BRAND", "/humanus-brand"))
-OUT = HERE / "ED-Operations-Impact-Q3-2026-DRAFT.pptx"
+OUT = HERE / "ED-Operations-Impact-Q3-2026.pptx"
 
 CORE = RGBColor(0x41, 0x0F, 0x37)
 BOLD = RGBColor(0x96, 0xFF, 0x14)
@@ -291,7 +291,7 @@ def slide_cover(prs, c):
     run(para(tf, first=True, after=4), c.cover_line, F_MEDIUM, 20, BOLD)
     run(para(tf), c.cover_date, F_BOOK, 16, BOLD)
     tf = textbox(s, x, 4.75, W - PANEL_W - x - 0.6, 1.0)
-    run(para(tf, first=True, after=6), c.tagline_cover, F_BLACK, 30, BOLD)
+    run(para(tf, first=True, after=6), c.tagline_cover, F_BLACK, 30, TOUCH)
     run(para(tf), c.values, F_MEDIUM, 12, BOLD)
     tf = textbox(s, x, 6.75, W - PANEL_W - x - 0.4, 0.4)
     run(para(tf, first=True), c.sponsor_line, F_BOOK_IT, 10, BOLD)
@@ -461,15 +461,15 @@ def slide_closing(prs, c):
 
 @dataclass
 class Content:
-    footer: str = "hūmānus  ·  Q3 2026 Board Meeting  ·  Operations & Impact Update  ·  DRAFT"
+    footer: str = "hūmānus  ·  Q3 2026 Board Meeting  ·  Operations & Impact Update"
 
     cover_line: str = "update since 29 June  ·  Q3 2026 Board Meeting"
     cover_date: str = "29 October 2026"
     tagline_cover: str = "Humanising Justice"
-    tagline_close: str = "Humanising justice"
+    tagline_close: str = "Humanising Justice"
     values: str = "ACCOUNTABILITY  ·  COMMUNITY  ·  EVIDENCE"
     sponsor_line: str = ("Sponsor: Eva Buzo, Executive Director  ·  Agenda item TBC  ·  15 minutes  ·  "
-                         "Discussion  ·  DRAFT for ED sign-off")
+                         "Discussion")
 
     goals_title: str = "Three goals guide everything we do"
     goals_subtitle: str = "Our 2024–29 strategy frames the year."
@@ -599,8 +599,7 @@ class Content:
     retreat_caption: str = "Team retreat, September 2026"
 
     contact: str = "www.humanus.co  ·  hello@humanus.co"
-    closing_line: str = ("Q3 2026 Board Meeting  ·  Operations & Impact Update  ·  Sponsor: Eva Buzo (ED)  ·  "
-                         "DRAFT")
+    closing_line: str = "Q3 2026 Board Meeting  ·  Operations & Impact Update  ·  Sponsor: Eva Buzo (ED)"
 
 
 def build(c: Content, out: Path = OUT) -> Path:
@@ -625,7 +624,7 @@ def build(c: Content, out: Path = OUT) -> Path:
     slide_closing(prs, c)
 
     assert len(prs.slides) == total
-    prs.core_properties.title = "ED Operations & Impact Update — Q3 2026 Board Meeting (DRAFT)"
+    prs.core_properties.title = "ED Operations & Impact Update — Q3 2026 Board Meeting"
     prs.core_properties.author = "hūmānus"
     prs.save(out)
     return out
