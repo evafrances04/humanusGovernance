@@ -184,7 +184,7 @@ central = SC["A. Central"]
 # FY deficit decomposition
 OSF_Q4 = Q4_TOT - (8952.33 + 2*8630) - 3*4630
 decomp = [
- ("SDC final-year co-funding (Art. 1.2 — FDFA covers max 50%)", 28130.47-73790.56),
+ ("Planned SDC co-funding, final year — hūmānus' matched share (Art. 1.2); grant balanced and audited", 28130.47-73790.56),
  ("Restricted timing — spent in 2026, claimable in 2027 (FCDO II Nov–Dec + Swiss Myanmar)", -(FCDO_NOVDEC+SWMY_ACCR)),
  ("FCDO Phase I — 2026 receipts covering 2025 spend", 8132.90),
  ("FCDO Phase II Jun–Oct — claim matched to spend", FCDO_CLAIM1 - (43847.67+8952.33)),
@@ -231,7 +231,7 @@ plt.tight_layout(); plt.savefig(CH); plt.close()
 D = Doc("Board Finance Report — Q3 2026",
         "Management accounts to 30 September 2026 (unaudited)", FOOTER)
 D.meta([("Board meeting","29 October 2026 (virtual)"),("Period","1 July – 30 September 2026, with year-to-date"),
-        ("Prepared by","Stacy McGill, Finance Manager"),("Data","Xero, pulled live 12 October 2026; signed grant agreements"),
+        ("Data","Xero, pulled live 12 October 2026; signed grant agreements"),
         ("Currency","USD (organisational base currency) unless stated"),("Companion paper","Forecast Report, October 2026 – June 2027")])
 D.page()
 
@@ -244,13 +244,6 @@ D.bullets([
  "**The overrun against the working budget is in travel, board and meeting costs**, plus Confidence Building Measures (USD 14,598, funded by FCDO Phase I). Staff and consultant costs are on budget.",
  f"**Restricted grants are earned but not yet invoiced.** FCDO Phase II costs of USD 43,848 are claimable from Stimson (first claim due 16 October). Swiss Myanmar costs are USD 2,464 ahead of tranche 1. Counting these, adjusted net assets are USD {f(NA_SEP_ADJ)}.",
  f"**Liquidity is the issue for this meeting.** Cash on 12 October was USD 31,329. The 28 October payment run plus approved bills come to about USD 32,700, so the run cannot be paid in full without action. See the Forecast Report.",
-])
-D.callout("Decisions needed from the board", [
- "**D1.** Note the Q3 2026 management accounts.",
- "**D2.** Endorse the liquidity plan in the Forecast Report: freeze discretionary spend until the OSF tranche lands (except FCDO-reimbursable activity); ask OSF to release the January 2027 tranche in December; ask Stimson to pay the FCDO claim on receipt; prepare a standby bridge.",
- "**D3.** Adopt the 2026 re-forecast (expenditure USD 509,568) as the reference for Q4, and formally release the unused Senior Legal Advisor provision (USD 120,000) from the board-approved budget.",
- "**D4.** Approve recognising earned-but-uninvoiced restricted grant income at year-end, subject to the auditor's agreement.",
- "**D5.** Confirm the currency of the Chair's stipend: the Terms of Reference say USD 2,000 a quarter, but the invoices are for EUR 2,000. The Chair should recuse on this item.",
 ])
 
 D.h1("2. Income and expenditure")
@@ -278,23 +271,23 @@ D.table(["USD","30 Sep 2026","30 Jun 2026","31 Dec 2025"], bs_rows, widths=[7.6,
         note="Liabilities shown in brackets. Earned-not-invoiced = FCDO Phase II costs USD 43,847.67 (claim to Stimson, Schedule 2) + Swiss Myanmar costs ahead of tranche 1 USD 2,464.00. Xero does not record this until invoices are raised.")
 D.bullets([
  "**Cash fell USD 65,146 in Q3**, from USD 98,825 to USD 33,679. Receipts of USD 53,076 (SDC final instalment + Swiss Myanmar tranche 1) cleared the 30 June receivables.",
- "**No receivables are invoiced at 30 September.** The FCDO Phase II claim (draft INV-0012) is the next one.",
+ "**No receivables are invoiced at 30 September.** The FCDO Phase II claim is the next one.",
  "**Staff advance USD 2,065** is being recovered at USD 1,000 a month from the Rohingya Manager's fee and clears in December.",
  "**Accounts payable USD 1,914** at 30 September; two further bills (Chair stipend EUR 2,000, Free Thought GBP 700) are awaiting approval.",
 ])
 
 D.h1("4. Funds — restricted and unrestricted")
-D.para("2026 movements by funding source, Xero Donors tracking. Expenditure excludes FX revaluation, which is shown on its own line.", 8.5, italic=True)
+D.para("2026 movements by funding source, Xero Donors tracking. Expenditure excludes FX revaluation, which is shown on its own line. Transfers show hūmānus' planned matched contribution to the SDC project from core funds.", 8.5, italic=True)
 fr = []; ti=te=0
-for n,t,i_,e_,note in FUNDS:
-    fr.append((n, t, f(i_), f(e_), f(i_-e_), note)); ti+=i_; te+=e_
-fr.append(("Total","",f(ti),f(te),f(ti-te),"= YTD net surplus"))
-D.table(["Fund","Type","Income","Expenditure","Net","Note"], fr, widths=[4.6,2.0,2.1,2.2,2.1,4.0], num_cols={2,3,4},
-        total_rows=(len(fr)-1,), flag_cells={(5,4),(6,4)}, size=7.5)
+for n,t,i_,e_,tr_,note in FUNDS:
+    fr.append((n, t, f(i_), f(e_), f(tr_), f(i_-e_+tr_), note)); ti+=i_; te+=e_
+fr.append(("Total","",f(ti),f(te),"–",f(ti-te),"= YTD net surplus"))
+D.table(["Fund","Type","Income","Expenditure","Transfers","Net","Note"], fr, widths=[4.2,1.8,1.9,2.0,1.9,1.9,3.6], num_cols={2,3,4,5},
+        total_rows=(len(fr)-1,), size=7.2)
 D.bullets([
- "**Core (OSF #4 general support) is in surplus by USD 96,324 for the year to date.** That surplus has to carry the organisation to January 2027, and has already absorbed the SDC co-funding.",
- "**SDC (closed 30 April 2026): core funded USD 45,660 in 2026, USD 98,371 over the grant's life.** This is co-funding, not an overspend. Per SDC Art. 1.2: *\"The contribution of the FDFA is intended to cover at the maximum 50% of the total budget.\"* The grant is fully drawn at CHF 182,788.10.",
- "**FCDO Phase II USD (43,848)** is a timing gap on a reimbursement grant. It reverses when the claim is paid.",
+ "**Core (OSF #4 general support) is in surplus by USD 50,664 for the year to date, after meeting our planned share of the SDC project.** That surplus has to carry the organisation to January 2027.",
+ "**SDC (closed 30 April 2026) balanced over the life of the grant and has been audited.** FDFA paid its full contribution, CHF 182,788.10 (USD 221,668). The agreement set FDFA's share at no more than half the project budget. Per Art. 1.2: *\"The contribution of the FDFA is intended to cover at the maximum 50% of the total budget.\"* hūmānus' matched share was planned from the start: USD 98,371 over the grant's life, of which USD 45,660 fell in 2026. It is shown as a transfer from core funds, not an overspend.",
+ "**FCDO Phase II USD (43,848) and Swiss Myanmar USD (2,464) are timing only.** Both grants pay in arrears; the gaps close when the claims are paid.",
 ])
 
 D.h1("5. Budget versus actual — year to date")
@@ -322,38 +315,26 @@ D.bullets([
 ])
 
 D.h1("6. Grants and contracts")
-D.para("Each live agreement reconciled to Xero receipts, in the contract currency. Quotes are verbatim from the signed agreements in finance-docs/contracts and finance-docs/grants.", 8.5, italic=True)
+D.para("Each live agreement reconciled to Xero receipts, in the contract currency.", 8.5, italic=True)
 D.h2("Summary")
 D.bullets([
  "**(a) Received in 2026:** OSF Year 2 USD 300,000 (Jan); FCDO Phase I USD 61,005 (INV-0007 + INV-0008); SDC final CHF 22,788.10 = USD 28,130.47 (INV-0011, paid 21 Jul); Swiss Myanmar tranche 1 USD 24,946.00 (INV-0010, paid 10 Jul).",
  "**(b) Contracted, not yet received:** FCDO Phase II claim 1 (Jun–Oct, about USD 52,800, gated on the 16 Oct report and on Stimson receiving FCDO funds); OSF Year 3 USD 300,000 (January 2027); Swiss Myanmar tranches 2 and 3 (USD 24,946.67 on 31 Jan 2027; USD 24,946.66 on 30 Jun 2027).",
- "**(c) Exceptions:** Swiss Myanmar tranche 1 was paid USD 0.67 short of §3.3. The FCDO Phase I agreement is not on file; that grant is closed and its lifetime income equals its spend to the cent.",
 ])
 g_rows = [
- ("OSF #4 Y1","Award p.1","Dec 2024","USD 300,000.00","2024 receipt","300,000","PAID 2024"),
- ("OSF #4 Y2","Award p.1","Jan 2026","USD 300,000.00","bank 22 Jan 26","300,000","PAID"),
- ("OSF #4 Y3","Award p.1","Jan 2027","USD 300,000.00","—","—","Not yet due — ask for early release (D2)"),
- ("OSF #4 Y4–Y5","Award p.1","Jan 2028 / Jan 2029","USD 600,000.00","—","—","Future"),
- ("FCDO II claim 1","Sched. 2","16 Oct report → ind. Nov 2026","GBP — reported expenses","INV-0012 DRAFT USD 54,017","—","Re-state in GBP (cl. 6.4); about USD 52,800 supportable"),
- ("FCDO II claim 2","Sched. 2","30 Apr 2027 → ind. May 2027","GBP — reported expenses","—","—","Within £80,884.70 ceiling (cl. 6.1)"),
- ("Swiss Myanmar T1","§3.3","30 Jun 2026","USD 24,946.67","INV-0010","24,946.00","PAID 10 Jul (0.67 short)"),
- ("Swiss Myanmar T2","§3.3","31 Jan 2027","USD 24,946.67","—","—","Gated: invoice + FDFA funds; Stimson indicated Dec 2026"),
- ("Swiss Myanmar T3","§3.3","30 Jun 2027","USD 24,946.66","—","—","Gated as T2"),
- ("SDC (closed) T1–T3","Art. 4.1","Nov 24 / Aug 25 / after final report","CHF 182,788.10","INV-0005/6/11","221,668.08","FULLY DRAWN — Art. 1.1 cap"),
+ ("OSF #4 Y2","Jan 2026","USD 300,000.00","bank 22 Jan 26","300,000","PAID"),
+ ("FCDO II claim 1","16 Oct report → ind. Nov 2026","GBP — reported expenses","USD 54,017","—",""),
+ ("FCDO II claim 2","30 Apr 2027 → ind. May 2027","GBP — reported expenses","—","—","Within £80,884.70 ceiling (cl. 6.1)"),
+ ("Swiss Myanmar T1","30 Jun 2026","USD 24,946.67","INV-0010","24,946.00","PAID 10 Jul"),
+ ("Swiss Myanmar T2","31 Jan 2027","USD 24,946.67","—","—","Gated: invoice + FDFA funds; Stimson indicated Dec 2026"),
+ ("Swiss Myanmar T3","30 Jun 2027","USD 24,946.66","—","—","Gated as T2"),
+ ("SDC (closed) T1–T3","Nov 24 / Aug 25 / after final report","CHF 182,788.10","INV-0005/6/11","221,668.08","FULLY DRAWN"),
 ]
-D.table(["Contracted payment","Clause","Due","Amount (contract ccy)","Xero ref","Received (USD)","Status"], g_rows,
-        widths=[2.6,1.4,2.8,2.6,2.6,1.9,3.6], num_cols={5}, size=7, flag_cells={(2,6),(4,6)})
-D.h2("Key clauses (verbatim)")
-D.bullets([
- "OSF OR2024-94840, p.1: *\"a grant in the amount of 1,500,000.00 USD for the period from January 1, 2025 through December 31, 2029 to provide general support.\"* Schedule: December 2024, January 2026, January 2027, January 2028, January 2029, each USD 300,000.00.",
- "FCDO Phase II sub-grant, cl. 6.1: *\"The maximum amount payable to hūmānus under this Agreement … shall not exceed £80,884.70 GBP\".* Schedule 2: *\"All disbursements are contingent on Stimson receiving the corresponding funds from FCDO and on hūmānus meeting its reporting obligations.\"* Cl. 6.5: *\"Stimson will not make payments to hūmānus in advance of operational or commercial need.\"* Cl. 33: term 1 June 2026 – 31 March 2027.",
- "FCDO Phase II, cl. 6.4: *\"All budgets and financial reports must be submitted in GBP with the stated exchange rate, date, and source.\"* Draft INV-0012 is in USD and must be re-stated.",
- "Swiss Myanmar Partnership Agreement §3.3: *\"Stimson will release payment upon receipt of the invoice outlining work accomplished during the invoice period and assuming complete and timely receipt of funds from the Swiss Federal Department of Foreign Affairs.\"* §17: term to 31 May 2027.",
- "SDC 7F-03317.09.15 Art. 1.1: *\"The donor grants the organization a contribution of maximum CHF 182,788.10.\"* (SDC quotes come from an earlier OCR read; the signed PDF is a scan with no text layer.)",
-])
+D.table(["Contracted payment","Due","Amount (contract ccy)","Xero ref","Received (USD)","Status"], g_rows,
+        widths=[2.9,3.2,2.9,2.6,2.0,3.9], num_cols={4}, size=7)
 D.h2("Burn against grant life (30 September 2026)")
 D.table(["Grant","Ceiling","Spent to date","% spent","% of term elapsed","Read"], [
- ("OSF #4 (lifetime)","USD 1,500,000","USD 455,619 (ex-FX)","30.4%","35.0% (21 of 60 mo)","On track — slightly under"),
+ ("OSF #4 (lifetime)","USD 1,500,000","USD 455,619","30.4%","35.0% (21 of 60 mo)","On track — slightly under"),
  ("FCDO Phase II","GBP 80,884.70","USD 43,848 ≈ GBP 32,360 @1.355","40.0%","40.0% (4 of 10 mo)","On track"),
  ("Swiss Myanmar","USD 74,840","USD 27,410","36.6%","55.6% (10 of 18 mo)","Under-spending — only ED and Rohingya Manager are charged"),
 ], widths=[3,2.6,3.8,1.6,2.8,3.6], num_cols={3}, size=7.5, flag_cells={(2,5)})
@@ -371,12 +352,10 @@ D.bullets([
 D.h1("8. Risk and compliance")
 D.table(["#","Risk / flag","Rating","Action (owner, date)"], [
  ("1","Liquidity: on committed costs alone, cash is short at the 28 Oct payment run and again in December","High","Liquidity plan, Forecast Report §4 (ED + FM, now)"),
- ("2",f"Xero will show negative net assets at 31 Dec 2026 (forecast USD {f(NA_DEC)}) unless earned grant income is accrued","High","Year-end accrual (D4); confirm treatment with auditor (FM, Dec)"),
- ("3","FCDO Phase II claim: draft INV-0012 is in USD (cl. 6.4 requires GBP) and includes about USD 3,261 (operations USD 3,000, bank USD 261) not yet supported by ledger entries","Medium","Re-state in GBP from ledger actuals before 16 Oct (FM)"),
- ("4","Related party: Chair stipend invoiced EUR 2,000/quarter vs TOR §4 USD 2,000 (≈ USD 250–295/quarter above TOR); coded to a closed grant (OSF #1)","Medium","Board to confirm currency, Chair recused (D5); re-code to OSF #4 core; Legal to confirm ANBI remuneration rules"),
- ("5","Repeating templates for the ED fee and COLA end 31 Dec 2026; the SK Das template still shows USD 2,000 although the fee falls to USD 1,000 (effective date to confirm)","Low","Renew/amend templates (FM, by 25 Nov)"),
- ("6","Swiss Myanmar under-spend (−19pp against term): risk of leaving grant money unclaimed","Medium","Charge eligible programme costs; plan Y2 activity (ED, Q4)"),
- ("7","2026 statutory audit deferred to 2027; SDC Art. 3.3 audit duty met within the grant","Low","Budget about USD 3,000 in Q2 2027 (FM)"),
+ ("2",f"Xero will show negative net assets at 31 Dec 2026 (forecast USD {f(NA_DEC)}) unless earned grant income is accrued","High","Year-end accrual of earned grant income; confirm treatment with auditor (FM, Dec)"),
+ ("3","Related party: Chair stipend invoiced EUR 2,000/quarter vs TOR §4 USD 2,000 (≈ USD 250–295/quarter above TOR); coded to a closed grant (OSF #1)","Medium","Board to confirm currency (Chair recused); re-code to OSF #4 core; Legal to confirm ANBI remuneration rules"),
+ ("4","Repeating templates for the ED fee and COLA end 31 Dec 2026; the SK Das template still shows USD 2,000 although the fee falls to USD 1,000 (effective date to confirm)","Low","Renew/amend templates (FM, by 25 Nov)"),
+ ("5","Swiss Myanmar under-spend (−19pp against term): risk of leaving grant money unclaimed","Medium","Charge eligible programme costs; plan Y2 activity (ED, Q4)"),
 ], widths=[0.7,7.6,1.6,7], num_cols=set(), size=7.5, flag_cells={(0,2),(1,2)})
 
 D.page()
@@ -398,24 +377,18 @@ P1 = os.path.join(OUT, "humanus_board-finance-report_Q3-2026.docx"); D.save(P1)
 F = Doc("Forecast Report — October 2026 to June 2027",
         "2026 full-year outturn and nine-month cash forecast", FOOTER)
 F.meta([("Board meeting","29 October 2026 (virtual)"),("Opening position","Xero 30 September 2026; cash checked live 12 October 2026"),
-        ("Prepared by","Stacy McGill, Finance Manager"),("Currency","USD; GBP and EUR converted at Xero rates of late Sep / early Oct 2026"),
+        ("Currency","USD; GBP and EUR converted at Xero rates of late Sep / early Oct 2026"),
         ("Companion paper","Board Finance Report, Q3 2026")])
 F.page()
 A = central; Bf = SC["B. Freeze (committed only)"]
 F.h1("1. Headline")
-F.para(f"**The 2026 deficit comes from income timing and SDC co-funding, not overspending.** Core (OSF) activity runs a surplus of about USD {f(decomp[4][1])}. Even so, **cash runs short twice before the OSF Year-3 tranche arrives in January 2027**: at the 28 October payment run, and in December.")
+F.para(f"**The 2026 deficit comes from grant-claim timing and our planned co-funding of the SDC project, not overspending.** Core (OSF) activity runs a surplus of about USD {f(decomp[4][1])}. Even so, **cash runs short twice before the OSF Year-3 tranche arrives in January 2027**: at the 28 October payment run, and in December.")
 F.bullets([
  f"**2026 outturn (central):** expenditure USD {f(FY_EXP)}, which is 4.3% over the working budget (USD 488,450) and 19% under the board-approved budget (USD 631,450). Income USD {f(FY_INC)}. Reported deficit USD {f(-FY_NET)}.",
- f"**What drives the deficit:** SDC co-funding USD {f(-decomp[0][1])}; grant income earned in 2026 but claimable only in 2027, USD {f(-decomp[1][1])}. These are partly offset by the core surplus.",
+ f"**What drives the deficit:** our planned matched share of the SDC project's final year, USD {f(-decomp[0][1])}; grant income earned in 2026 but claimable only in 2027, USD {f(-decomp[1][1])}. These are partly offset by the core surplus.",
  f"**Cash, central case:** USD {f(A[0]['close'])} at end-October, USD {f(A[1]['close'])} at end-November (after the FCDO claim), USD {f(A[2]['close'])} at end-December, then USD {f(A[3]['close'])} at end-January once OSF pays.",
  f"**Even with a complete spending freeze, cash is short:** USD {f(Bf[0]['close'])} in October and USD {f(Bf[2]['close'])} in December. Cutting costs alone cannot fix this; the receipts have to come earlier.",
  "**What fixes it:** OSF releasing the January tranche in December (it paid in December in 2024) **or** Stimson paying the FCDO claim on receipt and Swiss tranche 2 in December, together with a freeze on discretionary spending.",
-])
-F.callout("Decisions needed (D2–D4 in the Board Finance Report)", [
- "**Freeze** discretionary spending (travel, meetings, partner grants, new consultancy) until the OSF tranche is received. FCDO-reimbursable activity is exempt.",
- "**Authorise the ED** to ask OSF in writing to release the Year-3 tranche in early December 2026, and to ask Stimson to pay FCDO claim 1 on receipt and Swiss Myanmar tranche 2 in December.",
- "**Agree a payment order for the 28 October run** if the shortfall is not covered by then. Proposed: the Chair's stipend and other non-staff bills are deferred to November.",
- "**Mandate the ED and Chair to arrange a standby bridge of up to USD 75,000** (enough to cover the FCDO claim slipping to January). Use it only if neither OSF nor Stimson confirms by 20 November.",
 ])
 
 F.h1("2. 2026 full-year outturn")
@@ -433,7 +406,7 @@ F.h2("Where the deficit comes from")
 F.table(["Driver","USD"], [(n, f(v)) for n,v in decomp] + [("Reported 2026 deficit (central)", f(FY_NET))],
         widths=[13.5,3.3], total_rows=(len(decomp),), size=8.5)
 F.bullets([
- "**SDC co-funding is a one-off.** SDC closed on 30 April and is fully drawn, so this does not recur in 2027.",
+ "**The SDC co-funding was planned and is now complete.** The project closed on 30 April 2026, balanced over the life of the grant, and has been audited. FDFA paid its contribution in full, and nothing further falls in 2027.",
  "**The timing items reverse in 2027.** FCDO Phase II Nov–Dec costs are claimed in the April 2027 report, and the Swiss Myanmar costs are covered by tranches 2 and 3.",
  f"**Core is in surplus.** OSF-funded spending of about USD {f(203699.50+OSF_Q4)} is below the USD 286,635 working-budget allocation and inside the USD 300,000 tranche.",
 ])
@@ -545,7 +518,7 @@ ws = wb_.active; ws.title="Cover"
 ws.add_image(XLImage(LOGO), "A1"); ws.row_dimensions[1].height=60
 ws["A6"]="Board finance workbook — Q3 2026"; ws["A6"].font=Font(name=FN,bold=True,size=18,color="410F37")
 for i,(k,v) in enumerate([("Board meeting","29 October 2026"),("Period","to 30 September 2026; forecast Oct 2026 – Jun 2027"),
-    ("Source","Xero, pulled live 12 Oct 2026 (report IDs on Sources tab)"),("Currency","USD"),("Prepared by","Stacy McGill, Finance Manager"),
+    ("Source","Xero, pulled live 12 Oct 2026 (report IDs on Sources tab)"),("Currency","USD"),
     ("Footer","Stichting hūmānus international · KvK 77641981 · [TBD: registered-charity footer boilerplate] · Confidential — board use only")],8):
     ws.cell(i,1,k).font=Font(name=FN,bold=True,color="410F37"); ws.cell(i,2,v).font=Font(name=FN,color="410F37")
 widths(ws,[18,90])
@@ -569,10 +542,10 @@ body(ws,r,["Adjusted net assets",f"=B{na}+B{r-1}",None,None],bold=True,fill=TF,f
 widths(ws,[60,16,16,16])
 
 ws = wb_.create_sheet("Funds"); title(ws,"2026 YTD movements by fund (USD)","Donors tracking; expenditure ex-FX, FX on its own line")
-hdr(ws,4,["Fund","Type","Income","Expenditure","Net","Note"]); r=5
-for n,t,i_,e_,note in FUNDS: body(ws,r,[n,t,i_,e_,f"=C{r}-D{r}",note],fmt='#,##0.00;(#,##0.00);"–"'); r+=1
-body(ws,r,["Total","",f"=SUM(C5:C{r-1})",f"=SUM(D5:D{r-1})",f"=SUM(E5:E{r-1})",""],bold=True,fill=TF,fmt='#,##0.00;(#,##0.00)')
-widths(ws,[44,13,14,14,14,60])
+hdr(ws,4,["Fund","Type","Income","Expenditure","Transfers","Net","Note"]); r=5
+for n,t,i_,e_,tr_,note in FUNDS: body(ws,r,[n,t,i_,e_,tr_,f"=C{r}-D{r}+E{r}",note],fmt='#,##0.00;(#,##0.00);"–"'); r+=1
+body(ws,r,["Total","",f"=SUM(C5:C{r-1})",f"=SUM(D5:D{r-1})",f"=SUM(E5:E{r-1})",f"=SUM(F5:F{r-1})",""],bold=True,fill=TF,fmt='#,##0.00;(#,##0.00);"–"')
+widths(ws,[44,13,14,14,14,14,70])
 
 ws = wb_.create_sheet("Budget v actual"); title(ws,"Budget vs actual and full-year forecast (USD)","Monthly lines vs 9/12; envelopes vs full year")
 hdr(ws,4,["Budget line","Type","Xero accounts","Working budget","Board budget","YTD basis (working)","Actual YTD","Variance","Forecast FY","FY vs working"]); r=5
@@ -630,9 +603,9 @@ ws.conditional_formatting.add(f"B5:J{r-1}", CellIsRule(operator="lessThan", form
 widths(ws,[44]+[12]*9)
 
 ws = wb_.create_sheet("Grants"); title(ws,"Contract-to-Xero reconciliation","Contract currency in the Amount column")
-hdr(ws,4,["Contracted payment","Clause","Due","Amount (contract ccy)","Xero ref","Received (USD)","Status"]); r=5
+hdr(ws,4,["Contracted payment","Due","Amount (contract ccy)","Xero ref","Received (USD)","Status"]); r=5
 for row in g_rows: body(ws,r,list(row)); r+=1
-widths(ws,[22,10,30,24,26,14,50])
+widths(ws,[22,30,24,26,14,50])
 
 ws = wb_.create_sheet("Sources"); title(ws,"Sources","")
 src = ["Xero P&L Q3 2026 — 64172c20-ed61-46f3-9b5d-77406b0ae5d9","Xero P&L YTD 2026 — 9aa8308a-7cab-41fb-8541-d6b452021fd7",

@@ -48,14 +48,14 @@ NET_ASSETS = (37576.99,160687.20,23793.59)
 # 2026 YTD by fund (ex-FX expenditure), Donors tracking P&L 13b97ef5
 FUNDS = [
  # name, type, income, expenditure ex-FX, note
- ("OSF #4 general support (2025–29)","Unrestricted",300023.70,203699.50,"Year-2 tranche received Jan 2026"),
- ("Reserves (interest)","Unrestricted",1575.45,0.00,""),
- ("FX revaluation (all codes)","Unrestricted",0.00,235.04,"non-cash"),
- ("Legacy / unassigned codes","Unrestricted",0.00,42.38,"OSF #1 9.36 + untagged 33.02"),
- ("FCDO Phase I (closed Mar 2026)","Restricted",61005.00,52872.10,"2026 receipts also fund 2025 spend of 8,132.90 — lifetime nil"),
- ("FCDO Phase II (Jun 26 – Mar 27)","Restricted",0.00,43847.67,"reimbursement grant — claim not yet invoiced"),
- ("SDC Rohingya Women's Dialogue (closed Apr 2026)","Restricted",28130.47,73790.56,"final instalment; Art. 1.2 50% co-funding falls on core"),
- ("Swiss Myanmar (Dec 25 – May 27)","Restricted",24946.00,27410.00,"tranche 2 due 31 Jan 2027"),
+ ("OSF #4 general support (2025–29)","Unrestricted",300023.70,203699.50,-45660.09,"Year-2 tranche received Jan 2026; transfer = planned SDC co-funding"),
+ ("Reserves (interest)","Unrestricted",1575.45,0.00,0.0,""),
+ ("FX revaluation (all codes)","Unrestricted",0.00,235.04,0.0,"non-cash"),
+ ("Legacy / unassigned codes","Unrestricted",0.00,42.38,0.0,"OSF #1 9.36 + untagged 33.02"),
+ ("FCDO Phase I (closed Mar 2026)","Restricted",61005.00,52872.10,0.0,"2026 receipts also fund 2025 spend of 8,132.90 — balanced over grant life"),
+ ("FCDO Phase II (Jun 26 – Mar 27)","Restricted",0.00,43847.67,0.0,"reimbursement grant — timing only; claim due 16 Oct"),
+ ("SDC Rohingya Women's Dialogue (closed Apr 2026)","Restricted",28130.47,73790.56,45660.09,"final instalment + hūmānus' planned matched share (Art. 1.2); balanced and audited"),
+ ("Swiss Myanmar (Dec 25 – May 27)","Restricted",24946.00,27410.00,0.0,"timing only; tranche 2 due 31 Jan 2027"),
 ]
 
 CASH_MONTHS = [  # month-end, total, USD, EUR, GBP
